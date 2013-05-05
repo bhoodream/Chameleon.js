@@ -19,7 +19,7 @@ like this `/images/my_image.png`. Images should be on your Web server (cross dom
 * `dummy_back` - default `ededef`. Color for background, if image doesn't have any colors (low alpha). 
 Pass hex colors without '#';
 * `dummy_front` -  default `4f5155`. Color for text;
-* `adapt` - default `true`. Pass `true`, if you dont want/need adapt colors to background;
+* `adapt` - default `true`. Pass `false`, if you dont want/need adapt colors to background;
 * `apply_colors` - default `true`. Pass `false`, if you don't want colorization;
 * `data_colors` - default `false`. Pass `true`, if you want add `data-colors` attr to `.chmln` container.
 Colors will added through commas like this `#eae7e0,#62615b,#9e4343,#5c5c5a,#4f5155`;
