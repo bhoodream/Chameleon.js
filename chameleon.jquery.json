@@ -7,7 +7,7 @@
         "text",
         "image"
     ],
-    "version": "0.0.9",
+    "version": "0.1.0",
     "author": {
         "name": "Vadim Fedorov",
         "url": "http://vadimfedorov.ru"
@@ -21,6 +21,7 @@
     "bugs": "https://github.com/bhoodream/Chameleon.js/issues",
     "homepage": "http://vadimfedorov.ru/chameleon",
     "docs": "https://github.com/bhoodream/Chameleon.js#chameleonjs",
+    "demo": "http://vadimfedorov.ru/chameleon",
     "download": "https://codeload.github.com/bhoodream/Chameleon.js/zip/master",
     "dependencies": {
         "jquery": ">=1.9"

@@ -111,7 +111,7 @@
     };
 
     $.addAttrsToColorSpan = function(element, color, class_name) {
-        color = '#' + color.replace('#', '').toLowerCase();
+        color = '#' + color.replace(/#/g, '').toLowerCase();
         element.innerHTML = color;
         element.setAttribute("class", class_name + ' used_color label');
         element.title = '[Click] Go to ColorHexa (' + color + ')';
@@ -160,7 +160,8 @@
 
         if (element) {
             // Vars
-            var  marks = [], background = item_colors[0] || settings.dummy_back, colors = ['#' + background], mark_amt_affix = 1;
+            var  marks = [], background = item_colors[0] || settings.dummy_back, colors = ['#' + background],
+                mark_amt_affix = 1;
 
             // Marks
             var tmp_marks = element.find('.chmln' + mark_amt_affix);
@@ -171,9 +172,15 @@
 
             // Colors
             while (item_colors.length < mark_amt_affix) { item_colors.push(settings.dummy_front); }
-            colors = colors.concat(item_colors.slice(1, mark_amt_affix).map(
-                $.bind($.adaptColor, null, background, settings.adapt_limit)) // adapt every color
-            );
+            if (settings.all_colors) { mark_amt_affix = item_colors.length; }
+            if (settings.adapt) {
+                colors = colors.concat(item_colors.slice(1, mark_amt_affix).map(
+                    $.bind($.adaptColor, null, background, settings.adapt_limit)) // adapt every color
+                );
+            } else {
+                var i_c_length = mark_amt_affix;
+                for (var m = 1; m < i_c_length; m += 1) { colors.push('#' + item_colors[m]); }
+            }
 
             // Colorize
             if (settings.apply_colors) {
@@ -219,9 +226,11 @@
             img           : $('.chmln .chmln_img:first-child'),
             dummy_back    : 'ededef',
             dummy_front   : '4f5155',
+            adapt         : true,
             apply_colors  : true,
             data_colors   : false,
             insert_colors : false,
+            all_colors    : false,
             rules         : {},
             adapt_limit   : 200,
             alpha         : 200
@@ -295,5 +304,6 @@
         } else {
             $.error('Chameleon.js: Image not found. Each individual material must contain at least one image.');
         }
+        return this;
     };
 })(jQuery);
