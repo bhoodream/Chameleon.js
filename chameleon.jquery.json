@@ -1,13 +1,13 @@
 {
     "name": "chameleon",
     "title": "Chameleon",
-    "description": "Gets colors from image and uses them to give an unique view for text.",
+    "description": "Easy get and use colors from image.",
     "keywords": [
         "color",
         "text",
         "image"
     ],
-    "version": "0.0.8",
+    "version": "0.0.9",
     "author": {
         "name": "Vadim Fedorov",
         "url": "http://vadimfedorov.ru"
