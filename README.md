@@ -4,7 +4,7 @@ You can easy get and use colors from image. To see how it works check the [demo]
 
 ## How to use?
 
-Include jquery.js, include jquery.chameleon.js, assign a chmln-marks to elements and. If you get confused look at the examples.
+Include jquery.js, include jquery.chameleon.js, assign a chmln-marks to elements. If you get confused look at the examples.
 
 ```
 $('.chmln').chameleon();
