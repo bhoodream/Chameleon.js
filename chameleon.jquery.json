@@ -23,6 +23,6 @@
     "docs": "https://github.com/bhoodream/Chameleon.js",
     "download": "https://codeload.github.com/bhoodream/Chameleon.js/zip/master",
     "dependencies": {
-        "jquery": ">=1.5"
+        "jquery": ">=1.9"
     }
 }
