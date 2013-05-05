@@ -240,6 +240,7 @@
             // Canvas
             var canvas = document.getElementById('chmln_canvas') ? document.getElementById('chmln_canvas') :
                 document.createElement("canvas");
+            if (this.length < 1) { $.error( 'Chameleon.js: .chmln-container not found, probably, bad selector.' ); }
             this.length === 1 ? this.append(canvas) : this[0].appendChild(canvas);
             var ctx = canvas.getContext("2d");
             $.setAttributes(canvas, { 'width' : 1000, 'height' : 1000, 'id' : 'chmln_canvas', 'style' : 'display:none;' });
