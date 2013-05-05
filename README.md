@@ -19,11 +19,13 @@ like this `/images/my_image.png`. Images should be on your Web server (cross dom
 * `dummy_back` - default `ededef`. Color for background, if image doesn't have any colors (low alpha). 
 Pass hex colors without '#';
 * `dummy_front` -  default `4f5155`. Color for text;
+* `adapt` - default `true`. Pass `true`, if you dont want/need adapt colors to background;
 * `apply_colors` - default `true`. Pass `false`, if you don't want colorization;
 * `data_colors` - default `false`. Pass `true`, if you want add `data-colors` attr to `.chmln` container.
 Colors will added through commas like this `#eae7e0,#62615b,#9e4343,#5c5c5a,#4f5155`;
 * `insert_colors` - default `false`. Pass `true`, if you want insert extracted colors to `.chmln_colors` 
 container. Look at [demo](http://vadimfedorov.ru/chameleon);
+* `all_colors` - default `false`. Pass `true`, if you want all colors in callback, even that don't used;
 * `rules` - default `{}`. Example of rules: `{ BLOCKQUOTE : 'borderColor,backgroundColor'}`;
 * `adapt_limit` - default 200. Amount of adapt steps, when color not compatible with back;
 * `alpha` - default 200. Colors with alpha lower than this, not taking;
@@ -34,9 +36,11 @@ $('.chmln').chameleon({
   img           : $('#my_pic'),
   dummy_back    : '000000',
   dummy_front   : 'ffffff',
+  adapt         : false
   apply_colors  : false,
   data_colors   : true,
   insert_colors : true,
+  all_colors    : true,
   rules         : {'P' : 'borderColor'},
   adapt_limit   : 100,
   alpha         : 110
