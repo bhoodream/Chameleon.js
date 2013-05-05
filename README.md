@@ -4,14 +4,14 @@ You can easy get and use colors from image. To see how it works check the [demo]
 
 ## How to use?
 
-Include jquery.js, include jquery.chameleon.js, assign a chmln-marks to elements. If you get confused look at the examples.
+Include jquery.js, include jquery.chameleon.js, assign a chmln-marks to elements and. If you get confused look at the examples.
 
 ```
 $('.chmln').chameleon();
 ```
 ## Settings
 
-With settings you can configure the plugin. Next properties you can pass:
+Next properties you can pass:
 * `img` - default `$('.chmln .chmln_img:first-child')`, how you can see, selector get first image in each
 `.chmln` container. You can pass concrete image like this `$('.my_img)` or you can pass source url 
 like this `/images/my_image.png`. Images should be on your Web server (cross domain security);
