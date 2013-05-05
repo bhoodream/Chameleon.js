@@ -1,7 +1,7 @@
 {
     "name": "chameleon",
-    "title": "jQuery Chameleon",
-    "description": "jQuery plugin. Gets colors from image and uses them to give an unique view for text.",
+    "title": "Chameleon",
+    "description": "Gets colors from image and uses them to give an unique view for text.",
     "keywords": [
         "color",
         "text",
@@ -20,7 +20,7 @@
     ],
     "bugs": "https://github.com/bhoodream/Chameleon.js/issues",
     "homepage": "http://vadimfedorov.ru/chameleon",
-    "docs": "https://github.com/bhoodream/Chameleon.js",
+    "docs": "https://github.com/bhoodream/Chameleon.js#chameleonjs",
     "download": "https://codeload.github.com/bhoodream/Chameleon.js/zip/master",
     "dependencies": {
         "jquery": ">=1.9"
