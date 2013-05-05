@@ -223,7 +223,8 @@
             data_colors   : false,
             insert_colors : false,
             rules         : {},
-            adapt_limit   : 200
+            adapt_limit   : 200,
+            alpha         : 200
         }, options);
 
         if (settings.img.length > 0) {
@@ -251,7 +252,7 @@
 
                     // Colors
                     for (var i = 0; i < pix.length; i += 4) {
-                        if (pix[i + 3] > 200) {
+                        if (pix[i + 3] > settings.alpha) {
                             color_string = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
                             colors[color_string] ? colors[color_string] += 1 : colors[color_string] = 1;
                         }
