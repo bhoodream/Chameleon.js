@@ -1,0 +1,28 @@
+{
+    "name": "chameleon",
+    "title": "jQuery Chameleon",
+    "description": "jQuery plugin. Gets colors from image and uses them to give an unique view for text..",
+    "keywords": [
+        "color",
+        "text",
+        "iamge"
+    ],
+    "version": "0.0.1",
+    "author": {
+        "name": "Vadim Fedorov",
+        "url": "http://vadimfedorov.ru"
+    },
+    "licenses": [
+        {
+            "type": "MIT",
+            "url": "http://www.opensource.org/licenses/mit-license.php"
+        }
+    ],
+    "bugs": "https://github.com/bhoodream/Chameleon.js/issues",
+    "homepage": "https://github.com/bhoodream/Chameleon.js",
+    "docs": "https://github.com/bhoodream/Chameleon.js",
+    "download": "https://github.com/bhoodream/Chameleon.js",
+    "dependencies": {
+        "jquery": ">=1.9"
+    }
+}
