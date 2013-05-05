@@ -43,7 +43,7 @@ $('.chmln').chameleon({
 });
 ```
 
-Function
+Callback
 ========
 
 You can add a callback. In callback you can use extracted colors.
