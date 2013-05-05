@@ -1,13 +1,13 @@
 {
     "name": "chameleon",
     "title": "jQuery Chameleon",
-    "description": "jQuery plugin. Gets colors from image and uses them to give an unique view for text..",
+    "description": "jQuery plugin. Gets colors from image and uses them to give an unique view for text.",
     "keywords": [
         "color",
         "text",
         "iamge"
     ],
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author": {
         "name": "Vadim Fedorov",
         "url": "http://vadimfedorov.ru"
