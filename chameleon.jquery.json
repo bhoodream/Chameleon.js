@@ -19,9 +19,9 @@
         }
     ],
     "bugs": "https://github.com/bhoodream/Chameleon.js/issues",
-    "homepage": "https://github.com/bhoodream/Chameleon.js",
+    "homepage": "http://vadimfedorov.ru/chameleon",
     "docs": "https://github.com/bhoodream/Chameleon.js",
-    "download": "https://github.com/bhoodream/Chameleon.js",
+    "download": "https://codeload.github.com/bhoodream/Chameleon.js/zip/master",
     "dependencies": {
         "jquery": ">=1.9"
     }
