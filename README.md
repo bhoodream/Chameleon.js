@@ -28,10 +28,27 @@ container. Look at [demo](http://vadimfedorov.ru/chameleon);
 * `adapt_limit` - default 200. Amount of adapt steps, when color not compatible with back;
 * `alpha` - default 200. Colors with alpha lower than this, not taking;
 
+Example: 
+```
+$('.chmln').chameleon({
+  img           : $('#my_pic'),
+  dummy_back    : '000000',
+  dummy_front   : 'ffffff',
+  apply_colors  : false,
+  data_colors   : true,
+  insert_colors : true,
+  rules         : {'P' : 'borderColor'},
+  adapt_limit   : 100,
+  alpha         : 110
+}, function);
+```
+
 Function
 ========
 
-You can add a callback. In callback you can use extracted colors. Example:
+You can add a callback. In callback you can use extracted colors.
+
+Example:
 ```
 $('.chmln').chameleon(settings, function(colors) {
   console.log(colors);
