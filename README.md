@@ -7,7 +7,7 @@ How to use?
 ===========
 
 ```
-$('.chmln').chameleon(settings, function);
+$('.chmln').chameleon();
 ```
 Settings
 ========
@@ -40,7 +40,7 @@ $('.chmln').chameleon({
   rules         : {'P' : 'borderColor'},
   adapt_limit   : 100,
   alpha         : 110
-}, function);
+});
 ```
 
 Function
