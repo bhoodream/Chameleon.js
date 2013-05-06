@@ -182,11 +182,11 @@
             }
 
             // Colorize
-            if (settings.apply_colors) {
-                element.css('background-color', '#' + background);
-                var j = 0; // index for colors
-                for (var i = 0; i < marks.length; i += 1) {
-                    j += 1; // skip back color
+            var j = 0, apply = settings.apply_colors;
+            if (apply) { element.css('background-color', '#' + background); }
+            for (var i = 0; i < marks.length; i += 1) {
+                j += 1; // skip back color
+                if (apply) {
                     marks[i].css('color', colors[j]);
                     // Check Rules
                     for (var l = 0; l < marks[i].length; l += 1) {
@@ -197,20 +197,20 @@
                             }
                         }
                     }
-                    // Insert Colors
-                    if (settings.insert_colors) {
-                        if (i === 0) {
-                            var colors_container = element.find('.chmln_colors')[0];
-                            if (colors_container) {
-                                colors_container.innerHTML = '';
-                            } else {
-                                colors_container = $.setAttributes(document.createElement("div"), {'class' : 'chmln_colors'});
-                                element.append(colors_container);
-                            }
-                            colors_container.appendChild($.buildSpanColor('#' + background));
+                }
+                // Insert Colors
+                if (settings.insert_colors) {
+                    if (i === 0) {
+                        var colors_container = element.find('.chmln_colors')[0];
+                        if (colors_container) {
+                            colors_container.innerHTML = '';
+                        } else {
+                            colors_container = $.setAttributes(document.createElement("div"), {'class' : 'chmln_colors'});
+                            element.append(colors_container);
                         }
-                        colors_container.appendChild($.buildSpanColor(colors[j], item_colors[j], background));
+                        colors_container.appendChild($.buildSpanColor('#' + background));
                     }
+                    colors_container.appendChild($.buildSpanColor(colors[j], item_colors[j], background));
                 }
             }
         }
@@ -225,7 +225,7 @@
             img           : $('.chmln .chmln_img:first-child'),
             dummy_back    : 'ededef',
             dummy_front   : '4f5155',
-            adapt_colors         : true,
+            adapt_colors  : true,
             apply_colors  : true,
             data_colors   : false,
             insert_colors : false,
