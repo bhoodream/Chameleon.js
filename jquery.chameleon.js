@@ -173,7 +173,7 @@
             // Colors
             while (item_colors.length < mark_amt_affix) { item_colors.push(settings.dummy_front); }
             if (settings.all_colors) { mark_amt_affix = item_colors.length; }
-            if (settings.adapt) {
+            if (settings.adapt_colors) {
                 colors = colors.concat(item_colors.slice(1, mark_amt_affix).map(
                     $.bind($.adaptColor, null, background, settings.adapt_limit)) // adapt every color
                 );
@@ -226,7 +226,7 @@
             img           : $('.chmln .chmln_img:first-child'),
             dummy_back    : 'ededef',
             dummy_front   : '4f5155',
-            adapt         : true,
+            adapt_colors         : true,
             apply_colors  : true,
             data_colors   : false,
             insert_colors : false,
