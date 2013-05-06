@@ -1,18 +1,17 @@
-Chameleon.js
-============
+## Chameleon.js
 
 You can easy get and use colors from image. To see how it works check the [demo](http://vadimfedorov.ru/chameleon).
 
-How to use?
-===========
+## How to use?
+
+Include jquery.js, include jquery.chameleon.js, assign a chmln-marks to elements. If you get confused look at the examples.
 
 ```
 $('.chmln').chameleon();
 ```
-Settings
-========
+## Settings
 
-With settings you can configure the plugin. Next properties you can pass:
+Next properties you can pass:
 * `img` - default `$('.chmln .chmln_img:first-child')`, how you can see, selector get first image in each
 `.chmln` container. You can pass concrete image like this `$('.my_img)` or you can pass source url 
 like this `/images/my_image.png`. Images should be on your Web server (cross domain security);
@@ -30,13 +29,13 @@ container. Look at [demo](http://vadimfedorov.ru/chameleon);
 * `adapt_limit` - default 200. Amount of adapt steps, when color not compatible with back;
 * `alpha` - default 200. Colors with alpha lower than this, not taking;
 
-Example: 
+**Example:**
 ```
 $('.chmln').chameleon({
   img           : $('#my_pic'),
   dummy_back    : '000000',
   dummy_front   : 'ffffff',
-  adapt         : false
+  adapt         : false,
   apply_colors  : false,
   data_colors   : true,
   insert_colors : true,
@@ -47,20 +46,19 @@ $('.chmln').chameleon({
 });
 ```
 
-Callback
-========
+## Callback
 
-You can add a callback. In callback you can use extracted colors.
+In callback you can use extracted colors.
 
-Example:
+**Example:**
 ```
 $('.chmln').chameleon(settings, function(colors) {
   console.log(colors);
 });
 ```
 
-Example of HTML:
-================
+## Example of HTML:
+
 ```
 <div class="chmln">
   <h2 class="chmln1">The Metamorphosis</h2>
@@ -75,7 +73,7 @@ Example of HTML:
   <div class='chmln_colors'></div>
 </div>
 ```
-Where:
+**Where:**
 * `.chmln` - wrapper
 * `.chmln_img` - img that will use for colorization
 * `.chmln1`...`.chmlnN` - elements that should be colored
