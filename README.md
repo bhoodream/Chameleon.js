@@ -35,7 +35,7 @@ $('.chmln').chameleon({
   img           : $('#my_pic'),
   dummy_back    : '000000',
   dummy_front   : 'ffffff',
-  adapt         : false,
+  adapt_colors  : false,
   apply_colors  : false,
   data_colors   : true,
   insert_colors : true,
