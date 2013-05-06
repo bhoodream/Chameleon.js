@@ -178,8 +178,7 @@
                     $.bind($.adaptColor, null, background, settings.adapt_limit)) // adapt every color
                 );
             } else {
-                var i_c_length = mark_amt_affix;
-                for (var m = 1; m < i_c_length; m += 1) { colors.push('#' + item_colors[m]); }
+                for (var m = 1; m < mark_amt_affix; m += 1) { colors.push('#' + item_colors[m]); }
             }
 
             // Colorize
