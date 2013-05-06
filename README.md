@@ -13,7 +13,7 @@ $('.chmln').chameleon();
 
 Next properties you can pass:
 * `img` - default `$('.chmln .chmln_img:first-child')`, how you can see, selector get first image in each
-`.chmln` container. You can pass concrete image like this `$('.my_img)` or you can pass source url 
+`.chmln` container. You can pass concrete image like this `$('.my_img')` or you can pass source url 
 like this `/images/my_image.png`. Images should be on your Web server (cross domain security);
 * `dummy_back` - default `ededef`. Color for background, if image doesn't have any colors (low alpha). 
 Pass hex colors without '#';
