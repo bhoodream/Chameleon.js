@@ -1,7 +1,7 @@
 /*
  * Chameleon - jQuery plugin for colorize content
  *
- * Copyright (c) 2013 Vadim Fedorov
+ * Copyright (c) 2016 Vadim Fedorov
  *
  * Licensed under the MIT license:
  *   http://www.opensource.org/licenses/mit-license.php
