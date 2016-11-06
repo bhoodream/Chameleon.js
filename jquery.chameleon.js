@@ -10,7 +10,9 @@
  *  http://vadimfedorov.ru/chameleon
  *
  */
-(function ($) {
+
+;(function ($) {
+    'use strict';
 
     $.bind = function (func, context) {
         var bindArgs = [].slice.call(arguments, 2);
@@ -140,11 +142,12 @@
             want = 1;
 
         if ($.lumDiff(back_RGB, front_RGB) >= good) {
-            return '#' + color; // сочетается, ок
+            return '#' + color;
         } else {
             if ($.lumDiff(back_RGB, {r: 0, g: 0, b: 0}) >= good) {
                 want = -1;
             }
+
             return $.findColor(back_RGB, front_RGB, color, want, limit);
         }
     };
@@ -160,7 +163,9 @@
             if (e.target !== this) {
                 return false;
             }
+
             window.open('http://www.colorhexa.com/' + color.replace('#', ''), '_blank');
+
             return false;
         };
     };
@@ -180,11 +185,7 @@
             adapt_legend.innerHTML = '&nbsp;&#8594;&nbsp;';
             adapt_legend.setAttribute("class", "adapt_legend");
             adapt_legend.title = 'Color #' + source_color + action + ' to ' + adapt_color + ' for readability.';
-            adapt_legend.style.color = $.lumDiff($.hexToRGB(background), {
-                r: 0,
-                g: 0,
-                b: 0
-            }) >= 5 ? '#000000' : '#ffffff';
+            adapt_legend.style.color = $.lumDiff($.hexToRGB(background), { r: 0, g: 0, b: 0 }) >= 5 ? '#000000' : '#ffffff';
             adapt_color_span.className += ' adapt_color';
             container.appendChild(source_color_span);
             source_color_span.appendChild(adapt_legend);
@@ -201,28 +202,30 @@
         var element = item_elem || false;
 
         if (element) {
-            // Vars
-            var marks = [], background = item_colors[0] || settings.dummy_back, colors = ['#' + background],
+            var marks = [],
+                background = item_colors[0] || settings.dummy_back,
+                colors = ['#' + background],
                 mark_amt_affix = 1;
 
-            // Marks
             var tmp_marks = element.find('.chmln' + mark_amt_affix);
+
             while (tmp_marks.length > 0) {
                 marks.push(tmp_marks);
                 mark_amt_affix += 1;
                 tmp_marks = element.find('.chmln' + mark_amt_affix);
             }
 
-            // Colors
             while (item_colors.length < mark_amt_affix) {
                 item_colors.push(settings.dummy_front);
             }
+
             if (settings.all_colors) {
                 mark_amt_affix = item_colors.length;
             }
+
             if (settings.adapt_colors) {
-                colors = colors.concat(item_colors.slice(1, mark_amt_affix).map(
-                        $.bind($.adaptColor, null, background, settings.adapt_limit)) // adapt every color
+                colors = colors.concat(
+                    item_colors.slice(1, mark_amt_affix).map($.bind($.adaptColor, null, background, settings.adapt_limit))
                 );
             } else {
                 for (var m = 1; m < mark_amt_affix; m += 1) {
@@ -230,16 +233,18 @@
                 }
             }
 
-            // Colorize
             var j = 0, apply = settings.apply_colors;
+
             if (apply) {
                 element.css('background-color', '#' + background);
             }
+
             for (var i = 0; i < marks.length; i += 1) {
-                j += 1; // skip back color
+                j += 1;
+
                 if (apply) {
                     marks[i].css('color', colors[j]);
-                    // Check Rules
+
                     for (var l = 0; l < marks[i].length; l += 1) {
                         if (settings.rules.hasOwnProperty(marks[i][l].nodeName)) {
                             var rules = settings.rules[marks[i][l].nodeName].split(','), length = rules.length;
@@ -249,7 +254,7 @@
                         }
                     }
                 }
-                // Insert Colors
+
                 if (settings.insert_colors) {
                     if (i === 0) {
                         var colors_container = element.find('.chmln_colors')[0];
@@ -265,15 +270,17 @@
                 }
             }
         }
+
         return colors;
     };
 
     $.fn.chameleon = function (options, callback) {
-        'use strict';
-
         var $cur_elem = $(this);
 
-        // Settings
+        if (!$cur_elem.length) {
+            $.error('Chameleon.js: .chmln-container not found, probably, bad selector.');
+        }
+
         var settings = $.extend({
             img: $cur_elem.find('.chmln_img').first(),
             dummy_back: 'ededef',
@@ -286,37 +293,29 @@
             rules: {},
             adapt_limit: 200,
             alpha: 200
-        }, options);
+        }, options || {});
 
         if (settings.img.length > 0) {
-            // Canvas
-            var canvas = document.getElementById('chmln_canvas') ? document.getElementById('chmln_canvas') :
+            var canvas = document.getElementById('chmln_canvas') ?
+                document.getElementById('chmln_canvas') :
                 document.createElement("canvas");
-            if (this.length < 1) {
-                $.error('Chameleon.js: .chmln-container not found, probably, bad selector.');
-            }
+
             this.length === 1 ? this.append(canvas) : this[0].appendChild(canvas);
             var ctx = canvas.getContext("2d");
             $.setAttributes(canvas, {'width': 1000, 'height': 1000, 'id': 'chmln_canvas', 'style': 'display:none;'});
             ctx.clearRect(0, 0, 1000, 1000);
 
-            // Action
             this.each(function (index) {
-                // Vars
                 var $this = $(this), colors = [], item_colors = [], img = new Image();
 
-                // Image Onload
                 img.onload = function () {
 
-                    // Canvas
                     ctx.width = img.width;
                     ctx.height = img.height;
                     ctx.drawImage(img, 0, 0);
 
-                    // Vars
                     var imgd = ctx.getImageData(0, 0, img.width, img.height), pix = imgd.data, color_string = '';
 
-                    // Colors
                     for (var i = 0; i < pix.length; i += 4) {
                         if (pix[i + 3] > settings.alpha) {
                             color_string = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
@@ -324,53 +323,62 @@
                         }
                     }
 
-                    // Vars
-                    var sorted_colors = $.sortAssoc(colors), dev_val = 30, used_colors = [], is_valid = false;
+                    var sorted_colors = $.sortAssoc(colors),
+                        dev_val = 30,
+                        used_colors = [],
+                        is_valid = false;
 
-                    // Sort Colors
                     for (var clr in sorted_colors) {
-                        var color_values = clr.split(','), hex_val = '';
-                        is_valid = true;
-                        for (var k = 0; k < 3; k += 1) {
-                            hex_val += $.decimalToHex(color_values[k], 2);
-                        }
-                        for (var l = 0; l < used_colors.length; l += 1) {
-                            var color_dev_ttl = 0, rgba_vals = used_colors[l].split(',');
-                            for (var m = 0; m < 3; m += 1) {
-                                color_dev_ttl += Math.abs(color_values[m] - rgba_vals[m]);
+                        if (sorted_colors.hasOwnProperty(clr)) {
+                            var color_values = clr.split(','), hex_val = '';
+
+                            is_valid = true;
+
+                            for (var k = 0; k < 3; k += 1) {
+                                hex_val += $.decimalToHex(color_values[k], 2);
                             }
-                            if (color_dev_ttl / 4 < dev_val) {
-                                is_valid = false;
-                                break;
+
+                            for (var l = 0; l < used_colors.length; l += 1) {
+                                var color_dev_ttl = 0,
+                                    rgba_vals = used_colors[l].split(',');
+
+                                for (var m = 0; m < 3; m += 1) {
+                                    color_dev_ttl += Math.abs(color_values[m] - rgba_vals[m]);
+                                }
+
+                                if (color_dev_ttl / 4 < dev_val) {
+                                    is_valid = false;
+
+                                    break;
+                                }
                             }
-                        }
-                        if (is_valid) {
-                            used_colors.push(clr);
-                            item_colors.push(hex_val);
+
+                            if (is_valid) {
+                                used_colors.push(clr);
+                                item_colors.push(hex_val);
+                            }
                         }
                     }
 
-                    // Colorize
                     colors = $.colorizeItem($this, settings.img[index], item_colors, settings);
 
-                    // Settings
                     if (settings.data_colors) {
                         $.setAttributes($this[0], {'data-colors': colors});
                     }
+
                     if (typeof callback === 'function') {
                         callback(colors);
                     }
                 };
 
-                // Image Error
                 img.onerror = function () {
                     if (typeof callback === 'function') {
                         callback(colors);
                     }
+
                     $.error('Chameleon.js: Failed to load resource. URL - ' + img.src);
                 };
 
-                // Load Image
                 img.src = (typeof settings.img === 'object') ? settings.img[index].src : settings.img;
             });
         } else {
