@@ -69,225 +69,217 @@
             }
 
             return hex;
-        };
+        },
+        hexToRGB = function (hex) {
+            hex = hex.replace(/#/g, '');
 
-    $.hexToRGB = function (hex) {
-        hex = hex.replace(/#/g, '');
+            return {
+                r: parseInt(hex.substr(0, 2), 16),
+                g: parseInt(hex.substr(2, 2), 16),
+                b: parseInt(hex.substr(4, 2), 16),
 
-        return {
-            r: parseInt(hex.substr(0, 2), 16),
-            g: parseInt(hex.substr(2, 2), 16),
-            b: parseInt(hex.substr(4, 2), 16),
+                lum: function () {
+                    return this.r + this.g + this.b;
+                }
+            };
+        },
+        lumDiff = function (firstRGB, secondRGB) {
+            var getLum = function(c) {
+                    var r = 0.2126,
+                        g = 0.7152,
+                        b = 0.0722,
+                        a = 255,
+                        p = 2.2;
 
-            lum: function () {
-                return this.r + this.g + this.b;
-            }
-        };
-    };
+                    return r * Math.pow(c.r / a, p) + g * Math.pow(c.g / a, p) + b * Math.pow(c.b / a, p);
+                },
+                L1 = getLum(firstRGB),
+                L2 = getLum(secondRGB),
+                g = 0.05;
 
-    $.lumDiff = function (firstRGB, secondRGB) {
-        var getLum = function(c) {
-                var r = 0.2126,
-                    g = 0.7152,
-                    b = 0.0722,
-                    a = 255,
-                    p = 2.2;
+            return L1 > L2 ? (L1 + g) / (L2 + g) : (L2 + g) / (L1 + g);
+        },
+        сolorLuminance = function (hex, lum) {
+            hex = String(hex).replace(/[^0-9a-f]/gi, '');
 
-                return r * Math.pow(c.r / a, p) + g * Math.pow(c.g / a, p) + b * Math.pow(c.b / a, p);
-            },
-            L1 = getLum(firstRGB),
-            L2 = getLum(secondRGB),
-            g = 0.05;
-
-        return L1 > L2 ? (L1 + g) / (L2 + g) : (L2 + g) / (L1 + g);
-    };
-
-    $.сolorLuminance = function (hex, lum) {
-        hex = String(hex).replace(/[^0-9a-f]/gi, '');
-
-        if (hex.length < 6) {
-            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-        }
-
-        lum = lum || 0;
-
-        var rgb = "#", c, i;
-
-        for (i = 0; i < 3; i += 1) {
-            c = parseInt(hex.substr(i * 2, 2), 16);
-            c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
-            rgb += ("00" + c).substr(c.length);
-        }
-
-        return rgb;
-    };
-
-    $.findColor = function (back_RGB, front_RGB, front_HEX, want, limit) {
-        var lum_color = '',
-            lum = 0.05,
-            lum_step = 1,
-            good = 5,
-            bad_color = false,
-            end_color = '';
-
-        while ($.lumDiff(back_RGB, front_RGB) < good) {
-            lum_color = $.сolorLuminance(front_HEX, want * lum * lum_step);
-            front_RGB = $.hexToRGB(lum_color);
-            lum_step += 1;
-            if (lum_step > limit) {
-                break;
-            }
-        }
-
-        bad_color = lum_step > limit;
-        end_color = (want > 0) ? '#ffffff' : '#000000';
-
-        return ( bad_color ) ? end_color : lum_color;
-    };
-
-    $.adaptColor = function (back_color, limit, color) {
-        var back_RGB = $.hexToRGB(back_color),
-            front_RGB = $.hexToRGB(color),
-            good = 5,
-            want = 1;
-
-        if ($.lumDiff(back_RGB, front_RGB) >= good) {
-            return '#' + color;
-        } else {
-            if ($.lumDiff(back_RGB, { r: 0, g: 0, b: 0 }) >= good) {
-                want = -1;
+            if (hex.length < 6) {
+                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
             }
 
-            return $.findColor(back_RGB, front_RGB, color, want, limit);
-        }
-    };
+            lum = lum || 0;
 
-    $.addAttrsToColorSpan = function (element, color, class_name) {
-        color = '#' + color.replace(/#/g, '').toLowerCase();
+            var rgb = "#", c, i;
 
-        element.innerHTML = color;
-        element.title = '[Click] Go to ColorHexa (' + color + ')';
-        element.setAttribute("class", class_name + ' used_color label');
-        element.style.backgroundColor = color;
-        element.style.color = $.lumDiff($.hexToRGB(color), {r: 0, g: 0, b: 0}) >= 5 ? '#000000' : '#ffffff';
-
-        element.onclick = function (e) {
-            if (e.target !== this) {
-                return false;
+            for (i = 0; i < 3; i += 1) {
+                c = parseInt(hex.substr(i * 2, 2), 16);
+                c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
+                rgb += ("00" + c).substr(c.length);
             }
 
-            window.open('http://www.colorhexa.com/' + color.replace('#', ''), '_blank');
+            return rgb;
+        },
+        findColor = function (back_RGB, front_RGB, front_HEX, want, limit) {
+            var lum_color = '',
+                lum = 0.05,
+                lum_step = 1,
+                good = 5,
+                bad_color = false,
+                end_color = '';
 
-            return false;
-        };
-    };
-
-    $.buildSpanColor = function (adapt_color, source_color, background) {
-        var source_color_span = document.createElement("span"),
-            adapt_color_span = document.createElement("span"),
-            adapt_legend = document.createElement("span"),
-            container = document.createElement("span"),
-            is_different = source_color ? adapt_color.toLowerCase() !== '#' + source_color.toLowerCase() : false;
-
-        $.addAttrsToColorSpan(adapt_color_span, adapt_color, '');
-
-        if (source_color && is_different) {
-            var action = $.hexToRGB(source_color).lum() - $.hexToRGB(adapt_color).lum() > 0 ? ' darken' : ' lighten';
-
-            $.addAttrsToColorSpan(source_color_span, source_color, 'source_color');
-
-            adapt_legend.innerHTML = '&nbsp;&#8594;&nbsp;';
-            adapt_legend.setAttribute("class", "adapt_legend");
-            adapt_legend.title = 'Color #' + source_color + action + ' to ' + adapt_color + ' for readability.';
-            adapt_legend.style.color = $.lumDiff($.hexToRGB(background), { r: 0, g: 0, b: 0 }) >= 5 ? '#000000' : '#ffffff';
-
-            adapt_color_span.className += ' adapt_color';
-
-            container.appendChild(source_color_span);
-
-            source_color_span.appendChild(adapt_legend);
-        }
-
-        container.appendChild(adapt_color_span);
-
-        return container;
-    };
-
-    $.colorizeItem = function (item_elem, item_colors, settings) {
-        var element = item_elem || false;
-
-        if (element) {
-            var marks = [],
-                background = item_colors[0] || settings.dummy_back,
-                colors = ['#' + background],
-                mark_amt_affix = 1;
-
-            var tmp_marks = element.find(_s.sel.chmln + mark_amt_affix);
-
-            while (tmp_marks.length > 0) {
-                marks.push(tmp_marks);
-                mark_amt_affix += 1;
-                tmp_marks = element.find(_s.sel.chmln + mark_amt_affix);
-            }
-
-            while (item_colors.length < mark_amt_affix) {
-                item_colors.push(settings.dummy_front);
-            }
-
-            if (settings.all_colors) {
-                mark_amt_affix = item_colors.length;
-            }
-
-            if (settings.adapt_colors) {
-                colors = colors.concat(
-                    item_colors.slice(1, mark_amt_affix).map($.adaptColor.bind(this, background, settings.adapt_limit))
-                );
-            } else {
-                for (var m = 1; m < mark_amt_affix; m += 1) {
-                    colors.push('#' + item_colors[m]);
+            while (lumDiff(back_RGB, front_RGB) < good) {
+                lum_color = сolorLuminance(front_HEX, want * lum * lum_step);
+                front_RGB = hexToRGB(lum_color);
+                lum_step += 1;
+                if (lum_step > limit) {
+                    break;
                 }
             }
 
-            var j = 0, apply = settings.apply_colors;
+            bad_color = lum_step > limit;
+            end_color = (want > 0) ? '#ffffff' : '#000000';
 
-            if (apply) {
-                element.css('background-color', '#' + background);
+            return ( bad_color ) ? end_color : lum_color;
+        },
+        adaptColor = function (back_color, limit, color) {
+            var back_RGB = hexToRGB(back_color),
+                front_RGB = hexToRGB(color),
+                good = 5,
+                want = 1;
+
+            if (lumDiff(back_RGB, front_RGB) >= good) {
+                return '#' + color;
+            } else {
+                if (lumDiff(back_RGB, { r: 0, g: 0, b: 0 }) >= good) {
+                    want = -1;
+                }
+
+                return findColor(back_RGB, front_RGB, color, want, limit);
+            }
+        },
+        addAttrsToColorSpan = function (element, color, class_name) {
+            color = '#' + color.replace(/#/g, '').toLowerCase();
+
+            element.innerHTML = color;
+            element.title = '[Click] Go to ColorHexa (' + color + ')';
+            element.setAttribute("class", class_name + ' used_color label');
+            element.style.backgroundColor = color;
+            element.style.color = lumDiff(hexToRGB(color), {r: 0, g: 0, b: 0}) >= 5 ? '#000000' : '#ffffff';
+
+            element.onclick = function (e) {
+                if (e.target !== this) {
+                    return false;
+                }
+
+                window.open('http://www.colorhexa.com/' + color.replace('#', ''), '_blank');
+
+                return false;
+            };
+        },
+        buildSpanColor = function (adapt_color, source_color, background) {
+            var source_color_span = document.createElement("span"),
+                adapt_color_span = document.createElement("span"),
+                adapt_legend = document.createElement("span"),
+                container = document.createElement("span"),
+                is_different = source_color ? adapt_color.toLowerCase() !== '#' + source_color.toLowerCase() : false;
+
+            addAttrsToColorSpan(adapt_color_span, adapt_color, '');
+
+            if (source_color && is_different) {
+                var action = hexToRGB(source_color).lum() - hexToRGB(adapt_color).lum() > 0 ? ' darken' : ' lighten';
+
+                addAttrsToColorSpan(source_color_span, source_color, 'source_color');
+
+                adapt_legend.innerHTML = '&nbsp;&#8594;&nbsp;';
+                adapt_legend.setAttribute("class", "adapt_legend");
+                adapt_legend.title = 'Color #' + source_color + action + ' to ' + adapt_color + ' for readability.';
+                adapt_legend.style.color = lumDiff(hexToRGB(background), { r: 0, g: 0, b: 0 }) >= 5 ? '#000000' : '#ffffff';
+
+                adapt_color_span.className += ' adapt_color';
+
+                container.appendChild(source_color_span);
+
+                source_color_span.appendChild(adapt_legend);
             }
 
-            for (var i = 0; i < marks.length; i += 1) {
-                j += 1;
+            container.appendChild(adapt_color_span);
+
+            return container;
+        },
+        colorizeItem = function (item_elem, item_colors, settings) {
+            var element = item_elem || false;
+
+            if (element) {
+                var marks = [],
+                    background = item_colors[0] || settings.dummy_back,
+                    colors = ['#' + background],
+                    mark_amt_affix = 1;
+
+                var tmp_marks = element.find(_s.sel.chmln + mark_amt_affix);
+
+                while (tmp_marks.length > 0) {
+                    marks.push(tmp_marks);
+                    mark_amt_affix += 1;
+                    tmp_marks = element.find(_s.sel.chmln + mark_amt_affix);
+                }
+
+                while (item_colors.length < mark_amt_affix) {
+                    item_colors.push(settings.dummy_front);
+                }
+
+                if (settings.all_colors) {
+                    mark_amt_affix = item_colors.length;
+                }
+
+                if (settings.adapt_colors) {
+                    colors = colors.concat(
+                        item_colors.slice(1, mark_amt_affix).map(adaptColor.bind(this, background, settings.adapt_limit))
+                    );
+                } else {
+                    for (var m = 1; m < mark_amt_affix; m += 1) {
+                        colors.push('#' + item_colors[m]);
+                    }
+                }
+
+                var j = 0, apply = settings.apply_colors;
 
                 if (apply) {
-                    marks[i].css('color', colors[j]);
+                    element.css('background-color', '#' + background);
+                }
 
-                    for (var l = 0; l < marks[i].length; l += 1) {
-                        if (settings.rules.hasOwnProperty(marks[i][l].nodeName)) {
-                            var rules = settings.rules[marks[i][l].nodeName].split(','), length = rules.length;
-                            for (var k = 0; k < length; k += 1) {
-                                marks[i][l].style[rules[k].replace(/\s/g, '')] = colors[j];
+                for (var i = 0; i < marks.length; i += 1) {
+                    j += 1;
+
+                    if (apply) {
+                        marks[i].css('color', colors[j]);
+
+                        for (var l = 0; l < marks[i].length; l += 1) {
+                            if (settings.rules.hasOwnProperty(marks[i][l].nodeName)) {
+                                var rules = settings.rules[marks[i][l].nodeName].split(','), length = rules.length;
+                                for (var k = 0; k < length; k += 1) {
+                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = colors[j];
+                                }
                             }
                         }
                     }
-                }
 
-                if (settings.insert_colors) {
-                    if (i === 0) {
-                        var colors_container = element.find('.chmln_colors')[0];
-                        if (colors_container) {
-                            colors_container.innerHTML = '';
-                        } else {
-                            colors_container = setAttributes(document.createElement("div"), {'class': 'chmln_colors'});
-                            element.append(colors_container);
+                    if (settings.insert_colors) {
+                        if (i === 0) {
+                            var colors_container = element.find('.chmln_colors')[0];
+                            if (colors_container) {
+                                colors_container.innerHTML = '';
+                            } else {
+                                colors_container = setAttributes(document.createElement("div"), {'class': 'chmln_colors'});
+                                element.append(colors_container);
+                            }
+                            colors_container.appendChild(buildSpanColor('#' + background));
                         }
-                        colors_container.appendChild($.buildSpanColor('#' + background));
+                        colors_container.appendChild(buildSpanColor(colors[j], item_colors[j], background));
                     }
-                    colors_container.appendChild($.buildSpanColor(colors[j], item_colors[j], background));
                 }
             }
-        }
 
-        return colors;
-    };
+            return colors;
+        };
 
     $.fn.chameleon = function (options) {
         var $cur_elem = $(this);
@@ -359,8 +351,8 @@
                     for (var clr in sorted_colors) {
                         if (sorted_colors.hasOwnProperty(clr)) {
                             var color_values = clr.split(','),
-                                hex_val = '',
-                                is_valid = true;
+                                is_valid = true,
+                                hex_val = '';
 
                             for (var k = 0; k < 3; k += 1) {
                                 hex_val += decimalToHex(color_values[k], 2);
@@ -388,7 +380,7 @@
                         }
                     }
 
-                    colors = $.colorizeItem($this, item_colors, settings);
+                    colors = colorizeItem($this, item_colors, settings);
 
                     if (settings.data_colors) {
                         setAttributes($this[0], {'data-colors': colors});
