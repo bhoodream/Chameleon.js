@@ -15,6 +15,11 @@
 
 (function ($) {
     var _s = {
+            color: {
+                black: '#000000',
+                white: '#ffffff',
+                readable_lum_diff: 5
+            },
             sel: {
                 chmln: '.chmln',
                 chmln_canvas: '.chmln_canvas',
@@ -38,40 +43,56 @@
 
             return el;
         },
-        sortAssoc = function (arr) {
-            var aTemp = [];
+        sortArrByValue = function (arr) {
+            var tmp_arr = [],
+                new_arr = [];
 
-            for (var sKey in arr) {
-                if (arr.hasOwnProperty(sKey)) {
-                    aTemp.push([sKey, arr[sKey]]);
+            for (var k in arr) {
+                if (arr.hasOwnProperty(k)) {
+                    tmp_arr.push([k, arr[k]]);
                 }
             }
 
-            aTemp.sort(function () {
-                return arguments[1][1] - arguments[0][1];
+            tmp_arr.sort(function (a, b) {
+                return b[1] - a[1];
             });
 
-            var aOutput = [];
-
-            for (var nIndex = 0; nIndex < aTemp.length; nIndex += 1) {
-                aOutput[aTemp[nIndex][0]] = aTemp[nIndex][1];
+            for (var i = 0; i < tmp_arr.length; i += 1) {
+                new_arr[tmp_arr[i][0]] = tmp_arr[i][1];
             }
 
-            return aOutput;
+            return new_arr;
         },
-        decimalToHex = function (d, padding) {
-            var hex = Number(d).toString(16);
+        decimalToHex = function (dec, pad) {
+            var hex = Number(dec).toString(16);
 
-            padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
+            pad = typeof pad == 'undefined' || pad === null ? 2 : pad;
 
-            while (hex.length < padding) {
-                hex = "0" + hex;
+            while (hex.length < pad) {
+                hex = '0' + hex;
             }
 
             return hex;
         },
+        addHash = function(hex) {
+            return '#' + hex;
+        },
+        prepareHex = function(hex) {
+            if (hex) {
+                hex = String(hex).replace(/[^0-9a-f]/gi, '').toLowerCase();
+
+                if (hex.length < 6) {
+                    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                }
+
+                return hex;
+            } else {
+                console.warn('No hex given!');
+                return '';
+            }
+        },
         hexToRGB = function (hex) {
-            hex = hex.replace(/#/g, '');
+            hex = prepareHex(hex);
 
             return {
                 r: parseInt(hex.substr(0, 2), 16),
@@ -83,7 +104,7 @@
                 }
             };
         },
-        lumDiff = function (firstRGB, secondRGB) {
+        lumDiff = function (rgb1, rgb2) {
             var getLum = function(c) {
                     var r = 0.2126,
                         g = 0.7152,
@@ -93,84 +114,75 @@
 
                     return r * Math.pow(c.r / a, p) + g * Math.pow(c.g / a, p) + b * Math.pow(c.b / a, p);
                 },
-                L1 = getLum(firstRGB),
-                L2 = getLum(secondRGB),
+                l1 = getLum(rgb1),
+                l2 = getLum(rgb2),
                 g = 0.05;
 
-            return L1 > L2 ? (L1 + g) / (L2 + g) : (L2 + g) / (L1 + g);
+            return l1 > l2 ? (l1 + g) / (l2 + g) : (l2 + g) / (l1 + g);
         },
-        сolorLuminance = function (hex, lum) {
-            hex = String(hex).replace(/[^0-9a-f]/gi, '');
+        changeColorLum = function (hex, multiplier) {
+            hex = prepareHex(hex);
 
-            if (hex.length < 6) {
-                hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
-            }
+            multiplier = multiplier || 0;
 
-            lum = lum || 0;
+            var new_hex = '#', c;
 
-            var rgb = "#", c, i;
-
-            for (i = 0; i < 3; i += 1) {
+            for (var i = 0; i < 3; i += 1) {
                 c = parseInt(hex.substr(i * 2, 2), 16);
-                c = Math.round(Math.min(Math.max(0, c + (c * lum)), 255)).toString(16);
-                rgb += ("00" + c).substr(c.length);
+                c = Math.round(Math.min(Math.max(0, c + (c * multiplier)), 255)).toString(16);
+                new_hex += ('00' + c).substr(c.length);
             }
 
-            return rgb;
+            return new_hex;
         },
-        findColor = function (back_RGB, front_RGB, front_HEX, want, limit) {
-            var lum_color = '',
+        findColor = function (back_rgb, front_rgb, front_hex, lum_dir, limit) {
+            var new_color = '',
                 lum = 0.05,
-                lum_step = 1,
-                good = 5,
-                bad_color = false,
-                end_color = '';
+                lum_step = 1;
 
-            while (lumDiff(back_RGB, front_RGB) < good) {
-                lum_color = сolorLuminance(front_HEX, want * lum * lum_step);
-                front_RGB = hexToRGB(lum_color);
+            while (lumDiff(back_rgb, front_rgb) < _s.color.readable_lum_diff) {
+                new_color = changeColorLum(front_hex, lum_dir * lum * lum_step);
                 lum_step += 1;
-                if (lum_step > limit) {
-                    break;
-                }
+                front_rgb = hexToRGB(new_color);
+
+                if (lum_step > limit) break;
             }
 
-            bad_color = lum_step > limit;
-            end_color = (want > 0) ? '#ffffff' : '#000000';
-
-            return ( bad_color ) ? end_color : lum_color;
+            return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_color;
         },
-        adaptColor = function (back_color, limit, color) {
-            var back_RGB = hexToRGB(back_color),
-                front_RGB = hexToRGB(color),
-                good = 5,
-                want = 1;
+        adaptColorToBackColor = function (back_color, limit, color) {
+            var back_rgb = hexToRGB(back_color),
+                front_rgb = hexToRGB(color),
+                new_color = '',
+                lum_dir = 1;
 
-            if (lumDiff(back_RGB, front_RGB) >= good) {
-                return '#' + color;
+            if (lumDiff(back_rgb, front_rgb) >= _s.color.readable_lum_diff) {
+                new_color = addHash(color);
             } else {
-                if (lumDiff(back_RGB, { r: 0, g: 0, b: 0 }) >= good) {
-                    want = -1;
-                }
+                if (lumDiff(back_rgb, hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff)
+                    lum_dir = -1;
 
-                return findColor(back_RGB, front_RGB, color, want, limit);
+                new_color = findColor(back_rgb, front_rgb, color, lum_dir, limit);
             }
+
+            return new_color;
         },
         addAttrsToColorSpan = function (element, color, class_name) {
-            color = '#' + color.replace(/#/g, '').toLowerCase();
+            color = addHash(prepareHex(color));
 
             element.innerHTML = color;
             element.title = '[Click] Go to ColorHexa (' + color + ')';
             element.setAttribute("class", class_name + ' used_color label');
             element.style.backgroundColor = color;
-            element.style.color = lumDiff(hexToRGB(color), {r: 0, g: 0, b: 0}) >= 5 ? '#000000' : '#ffffff';
+            element.style.color =
+                lumDiff(hexToRGB(color), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
+                    _s.color.black :
+                    _s.color.white;
 
             element.onclick = function (e) {
-                if (e.target !== this) {
-                    return false;
-                }
+                if (e.target !== this) return false;
 
-                window.open('http://www.colorhexa.com/' + color.replace('#', ''), '_blank');
+                window.open('http://www.colorhexa.com/' + prepareHex(color), '_blank');
 
                 return false;
             };
@@ -180,7 +192,7 @@
                 adapt_color_span = document.createElement("span"),
                 adapt_legend = document.createElement("span"),
                 container = document.createElement("span"),
-                is_different = source_color ? adapt_color.toLowerCase() !== '#' + source_color.toLowerCase() : false;
+                is_different = source_color ? adapt_color.toLowerCase() !== addHash(source_color.toLowerCase()) : false;
 
             addAttrsToColorSpan(adapt_color_span, adapt_color, '');
 
@@ -192,7 +204,10 @@
                 adapt_legend.innerHTML = '&nbsp;&#8594;&nbsp;';
                 adapt_legend.setAttribute("class", "adapt_legend");
                 adapt_legend.title = 'Color #' + source_color + action + ' to ' + adapt_color + ' for readability.';
-                adapt_legend.style.color = lumDiff(hexToRGB(background), { r: 0, g: 0, b: 0 }) >= 5 ? '#000000' : '#ffffff';
+                adapt_legend.style.color =
+                    lumDiff(hexToRGB(background), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
+                        _s.color.black :
+                        _s.color.white;
 
                 adapt_color_span.className += ' adapt_color';
 
@@ -211,7 +226,7 @@
             if (element) {
                 var marks = [],
                     background = item_colors[0] || settings.dummy_back,
-                    colors = ['#' + background],
+                    colors = [addHash(background)],
                     mark_amt_affix = 1;
 
                 var tmp_marks = element.find(_s.sel.chmln + mark_amt_affix);
@@ -232,18 +247,20 @@
 
                 if (settings.adapt_colors) {
                     colors = colors.concat(
-                        item_colors.slice(1, mark_amt_affix).map(adaptColor.bind(this, background, settings.adapt_limit))
+                        item_colors.slice(1, mark_amt_affix).map(
+                            adaptColorToBackColor.bind(this, background, settings.adapt_limit)
+                        )
                     );
                 } else {
                     for (var m = 1; m < mark_amt_affix; m += 1) {
-                        colors.push('#' + item_colors[m]);
+                        colors.push(addHash(item_colors[m]));
                     }
                 }
 
                 var j = 0, apply = settings.apply_colors;
 
                 if (apply) {
-                    element.css('background-color', '#' + background);
+                    element.css('background-color', addHash(background));
                 }
 
                 for (var i = 0; i < marks.length; i += 1) {
@@ -271,7 +288,7 @@
                                 colors_container = setAttributes(document.createElement("div"), {'class': 'chmln_colors'});
                                 element.append(colors_container);
                             }
-                            colors_container.appendChild(buildSpanColor('#' + background));
+                            colors_container.appendChild(buildSpanColor(addHash(background)));
                         }
                         colors_container.appendChild(buildSpanColor(colors[j], item_colors[j], background));
                     }
@@ -344,7 +361,7 @@
                         }
                     }
 
-                    var sorted_colors = sortAssoc(colors),
+                    var sorted_colors = sortArrByValue(colors),
                         dev_val = 30,
                         used_colors = [];
 
