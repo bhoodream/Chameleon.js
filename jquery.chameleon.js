@@ -211,7 +211,7 @@
                 $adapt_legend
                     .attr('title', 'Color #' + source_hex + action + ' to ' + adapt_hex + ' for readability.')
                     .addClass('adapt_legend')
-                    .css('color', getReadableColor(background))
+                    .css('color', getReadableColor(source_hex))
                     .html('&nbsp;&#8594;&nbsp;');
 
                 $adapt_color_span.addClass('adapt_hex');
@@ -329,18 +329,14 @@
                 }, options);
 
                 if (settings.img.length) {
-                    var $canvas = $(_s.sel.chmln_canvas);
+                    var $canvas = setAttributes($('<canvas>'), {
+                        'class': clearSel(_s.sel.chmln_canvas),
+                        'style': 'display: none;',
+                        'width': _s.canvas.w,
+                        'height': _s.canvas.h
+                    });
 
-                    if (!$canvas.length) {
-                        $canvas = setAttributes($('<canvas>'), {
-                            'class': clearSel(_s.sel.chmln_canvas),
-                            'style': 'display: none;',
-                            'width': _s.canvas.w,
-                            'height': _s.canvas.h
-                        });
-
-                        $this.append($canvas);
-                    }
+                    $this.append($canvas);
 
                     var ctx = $canvas[0].getContext("2d"),
                         colors = [],
@@ -405,9 +401,11 @@
 
                         colors = colorizeItem($this, item_colors, settings);
 
-                        if (settings.data_colors) setAttributes($this, { 'data-colors': colors });
+                        if (settings.data_colors)
+                            setAttributes($this, { 'data-colors': colors });
 
-                        if (typeof settings.after_parsed === 'function') settings.after_parsed(colors);
+                        if (typeof settings.after_parsed === 'function')
+                            settings.after_parsed(colors);
                     };
 
                     img.onerror = function () {
@@ -438,9 +436,17 @@
                         colorize.call($elem);
                         $elem = getNext();
 
-                        if ($elem) setTimeout(asyncColorize.bind(null, $elem), 0);
+                        if ($elem) {
+                            setTimeout(asyncColorize.bind(null, $elem), 0);
+                        } else {
+                            if (typeof options.after_async_colorized === 'function')
+                                options.after_async_colorized();
+                        }
                     }
                 };
+
+            if (typeof options.before_async_colorized === 'function')
+                options.before_async_colorized();
 
             asyncColorize(getNext());
         } else {
