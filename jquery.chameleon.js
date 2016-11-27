@@ -135,90 +135,89 @@
 
             return new_hex;
         },
-        findColor = function (back_rgb, front_rgb, front_hex, lum_dir, limit) {
-            var new_color = '',
+        findReadableColor = function (back_rgb, front_rgb, front_hex, lum_dir, limit) {
+            var new_hex = '',
                 lum = 0.05,
                 lum_step = 1;
 
             while (lumDiff(back_rgb, front_rgb) < _s.color.readable_lum_diff) {
-                new_color = changeColorLum(front_hex, lum_dir * lum * lum_step);
+                new_hex = changeColorLum(front_hex, lum_dir * lum * lum_step);
                 lum_step += 1;
-                front_rgb = hexToRGB(new_color);
+                front_rgb = hexToRGB(new_hex);
 
                 if (lum_step > limit) break;
             }
 
-            return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_color;
+            return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
-        adaptColorToBackColor = function (back_color, limit, color) {
-            var back_rgb = hexToRGB(back_color),
-                front_rgb = hexToRGB(color),
-                new_color = '',
+        getReadableColor = function(hex) {
+            return lumDiff(hexToRGB(hex), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
+                _s.color.black :
+                _s.color.white;
+        },
+        makeColorReadable = function (back_hex, limit, front_hex) {
+            var back_rgb = hexToRGB(back_hex),
+                front_rgb = hexToRGB(front_hex),
+                new_hex = '',
                 lum_dir = 1;
 
             if (lumDiff(back_rgb, front_rgb) >= _s.color.readable_lum_diff) {
-                new_color = addHash(color);
+                new_hex = addHash(front_hex);
             } else {
                 if (lumDiff(back_rgb, hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff)
                     lum_dir = -1;
 
-                new_color = findColor(back_rgb, front_rgb, color, lum_dir, limit);
+                new_hex = findReadableColor(back_rgb, front_rgb, front_hex, lum_dir, limit);
             }
 
-            return new_color;
+            return new_hex;
         },
-        addAttrsToColorSpan = function (element, color, class_name) {
-            color = addHash(prepareHex(color));
+        addAttrsToColorSpan = function ($elem, hex, class_name) {
+            if (!($elem instanceof jQuery)) $elem = $($elem);
 
-            element.innerHTML = color;
-            element.title = '[Click] Go to ColorHexa (' + color + ')';
-            element.setAttribute("class", class_name + ' used_color label');
-            element.style.backgroundColor = color;
-            element.style.color =
-                lumDiff(hexToRGB(color), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
-                    _s.color.black :
-                    _s.color.white;
+            hex = addHash(prepareHex(hex));
 
-            element.onclick = function (e) {
-                if (e.target !== this) return false;
+            $elem
+                .attr('title', '[Click] Go to ColorHexa (' + hex + ')')
+                .addClass(class_name + ' used_color label')
+                .css({ 'background-color': hex, 'color': getReadableColor(hex) })
+                .html(hex)
+                .on('click', function (e) {
+                    if (e.target !== this) return false;
 
-                window.open('http://www.colorhexa.com/' + prepareHex(color), '_blank');
+                    window.open('http://www.colorhexa.com/' + prepareHex(hex), '_blank');
 
-                return false;
-            };
+                    return false;
+                });
         },
-        buildSpanColor = function (adapt_color, source_color, background) {
-            var source_color_span = document.createElement("span"),
-                adapt_color_span = document.createElement("span"),
-                adapt_legend = document.createElement("span"),
-                container = document.createElement("span"),
-                is_different = source_color ? adapt_color.toLowerCase() !== addHash(source_color.toLowerCase()) : false;
+        buildSpanColor = function (adapt_hex, source_hex, background) {
+            var $source_color_span = $('<span>'),
+                $adapt_color_span = $('<span>'),
+                $adapt_legend = $('<span>'),
+                $container = $('<span>'),
+                is_different = source_hex ? adapt_hex.toLowerCase() !== addHash(source_hex.toLowerCase()) : false;
 
-            addAttrsToColorSpan(adapt_color_span, adapt_color, '');
+            addAttrsToColorSpan($adapt_color_span, adapt_hex, '');
 
-            if (source_color && is_different) {
-                var action = hexToRGB(source_color).lum() - hexToRGB(adapt_color).lum() > 0 ? ' darken' : ' lighten';
+            if (source_hex && is_different) {
+                var action = hexToRGB(source_hex).lum() - hexToRGB(adapt_hex).lum() > 0 ? ' darken' : ' lighten';
 
-                addAttrsToColorSpan(source_color_span, source_color, 'source_color');
+                addAttrsToColorSpan($source_color_span, source_hex, 'source_hex');
 
-                adapt_legend.innerHTML = '&nbsp;&#8594;&nbsp;';
-                adapt_legend.setAttribute("class", "adapt_legend");
-                adapt_legend.title = 'Color #' + source_color + action + ' to ' + adapt_color + ' for readability.';
-                adapt_legend.style.color =
-                    lumDiff(hexToRGB(background), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
-                        _s.color.black :
-                        _s.color.white;
+                $adapt_legend
+                    .attr('title', 'Color #' + source_hex + action + ' to ' + adapt_hex + ' for readability.')
+                    .addClass('adapt_legend')
+                    .css('color', getReadableColor(background))
+                    .html('&nbsp;&#8594;&nbsp;');
 
-                adapt_color_span.className += ' adapt_color';
-
-                container.appendChild(source_color_span);
-
-                source_color_span.appendChild(adapt_legend);
+                $adapt_color_span.addClass('adapt_hex');
+                $container.append($source_color_span);
+                $source_color_span.append($adapt_legend);
             }
 
-            container.appendChild(adapt_color_span);
+            $container.append($adapt_color_span);
 
-            return container;
+            return $container;
         },
         colorizeItem = function (item_elem, item_colors, settings) {
             var element = item_elem || false;
@@ -248,7 +247,7 @@
                 if (settings.adapt_colors) {
                     colors = colors.concat(
                         item_colors.slice(1, mark_amt_affix).map(
-                            adaptColorToBackColor.bind(this, background, settings.adapt_limit)
+                            makeColorReadable.bind(this, background, settings.adapt_limit)
                         )
                     );
                 } else {
@@ -281,16 +280,16 @@
 
                     if (settings.insert_colors) {
                         if (i === 0) {
-                            var colors_container = element.find('.chmln_colors')[0];
-                            if (colors_container) {
-                                colors_container.innerHTML = '';
+                            var $colors_container = element.find('.chmln_colors');
+                            if ($colors_container.length) {
+                                $colors_container.html('');
                             } else {
-                                colors_container = setAttributes(document.createElement("div"), {'class': 'chmln_colors'});
-                                element.append(colors_container);
+                                $colors_container = $('<div class="chmln_colors">');
+                                element.append($colors_container);
                             }
-                            colors_container.appendChild(buildSpanColor(addHash(background)));
+                            $colors_container.append(buildSpanColor(addHash(background)));
                         }
-                        colors_container.appendChild(buildSpanColor(colors[j], item_colors[j], background));
+                        $colors_container.append(buildSpanColor(colors[j], item_colors[j], background));
                     }
                 }
             }
