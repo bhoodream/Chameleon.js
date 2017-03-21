@@ -18,6 +18,8 @@
             color: {
                 black: '#000000',
                 white: '#ffffff',
+                alpha: 200,
+                distinction: 120,
                 readable_lum_diff: 5
             },
             canvas: {
@@ -37,6 +39,9 @@
 
     var clearSel = function(sel) {
             return sel.slice(1);
+        },
+        getSettings = function(default_settings, options) {
+            return $.extend(default_settings, options || {});
         },
         setAttributes = function ($elem, attrs) {
             for (var a in attrs) {
@@ -234,13 +239,88 @@
 
             return $container;
         },
-        colorizeItem = function (item_elem, item_colors, settings) {
+        parseImageColors = function($container, img_src, settings, onImgLoad, onImgError) {
+            var $canvas = setAttributes($('<canvas>'), {
+                    'class': clearSel(_s.sel.chmln_canvas),
+                    'style': 'display: none;',
+                    'width': _s.canvas.w,
+                    'height': _s.canvas.h
+                }),
+                img = new Image();
+
+            $container.append($canvas);
+
+            img.onload = function () {
+                var ctx = $canvas[0].getContext("2d"),
+                    img_colors = [];
+
+                ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
+
+                ctx.width = img.width;
+                ctx.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                var pix = ctx.getImageData(0, 0, img.width, img.height).data,
+                    rgba_key = '';
+
+                for (var i = 0; i < pix.length; i += 4) {
+                    if (pix[i + 3] > settings.alpha) {
+                        rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
+
+                        if (img_colors[rgba_key]) {
+                            img_colors[rgba_key] += 1
+                        } else {
+                            img_colors[rgba_key] = 1
+                        }
+                    }
+                }
+
+                var sorted_colors = sortArrByValue(img_colors),
+                    used_colors = [];
+
+                img_colors = [];
+
+                for (var rgba_string in sorted_colors) {
+                    if (sorted_colors.hasOwnProperty(rgba_string)) {
+                        var rgba_arr = rgba_string.split(','),
+                            is_valid = true;
+
+                        for (var l = 0; l < used_colors.length; l += 1) {
+                            var color_distinction = 0,
+                                used_rgba_arr = used_colors[l].split(',');
+
+                            for (var m = 0; m < 3; m += 1) {
+                                color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
+                            }
+
+                            if (color_distinction < settings.color_distinction) {
+                                is_valid = false;
+
+                                break;
+                            }
+                        }
+
+                        if (is_valid) {
+                            used_colors.push(rgba_string);
+                            img_colors.push(rgbToHex(rgba_arr));
+                        }
+                    }
+                }
+
+                onImgLoad(img_colors);
+            };
+
+            img.onerror = onImgError;
+
+            img.src = img_src;
+        },
+        colorizeItem = function (item_elem, img_colors, settings) {
             var $elem = item_elem || false;
 
             if ($elem.length) {
                 var marks = [],
-                    background = item_colors[0] || settings.dummy_back,
-                    colors = [addHash(background)],
+                    background = img_colors[0] || settings.dummy_back,
+                    item_colors = [addHash(background)],
                     mark_amt_affix = 1;
 
                 var tmp_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
@@ -251,21 +331,21 @@
                     tmp_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
                 }
 
-                while (item_colors.length < mark_amt_affix) {
-                    item_colors.push(settings.dummy_front);
+                while (img_colors.length < mark_amt_affix) {
+                    img_colors.push(settings.dummy_front);
                 }
 
-                if (settings.all_colors) mark_amt_affix = item_colors.length;
+                if (settings.all_colors) mark_amt_affix = img_colors.length;
 
                 if (settings.adapt_colors) {
-                    colors = colors.concat(
-                        item_colors.slice(1, mark_amt_affix).map(
+                    item_colors = item_colors.concat(
+                        img_colors.slice(1, mark_amt_affix).map(
                             makeColorReadable.bind(this, background, settings.adapt_limit)
                         )
                     );
                 } else {
                     for (var m = 1; m < mark_amt_affix; m += 1) {
-                        colors.push(addHash(item_colors[m]));
+                        item_colors.push(addHash(img_colors[m]));
                     }
                 }
 
@@ -279,7 +359,7 @@
                     j += 1;
 
                     if (settings.apply_colors) {
-                        marks[i].css('color', colors[j]);
+                        marks[i].css('color', item_colors[j]);
 
                         for (var l = 0; l < marks[i].length; l += 1) {
                             var node_name = marks[i][l].nodeName.toLowerCase();
@@ -289,7 +369,7 @@
                                     length = rules.length;
 
                                 for (var k = 0; k < length; k += 1) {
-                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = colors[j];
+                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[j];
                                 }
                             }
                         }
@@ -309,153 +389,192 @@
                             $colors_container.append(buildSpanColor(addHash(background)));
                         }
 
-                        $colors_container.append(buildSpanColor(colors[j], item_colors[j], background));
+                        $colors_container.append(buildSpanColor(item_colors[j], img_colors[j], background));
                     }
                 }
             }
 
-            return colors;
-        };
+            return item_colors;
+        },
+        actions = {
+            colorizeContent: function($elements, options) {
+                var colorize = function () {
+                        var $this = $(this),
+                            settings = getSettings({
+                                img: $this.find(_s.sel.chmln_img).first(),
+                                dummy_back: 'ededef',
+                                dummy_front: '4f5155',
+                                adapt_colors: true,
+                                apply_colors: true,
+                                data_colors: false,
+                                insert_colors: false,
+                                all_colors: false,
+                                async_colorize: false,
+                                rules: {},
+                                adapt_limit: 200,
+                                alpha: _s.color.alpha,
+                                color_distinction: _s.color.distinction
+                            }, options);
 
-    $.fn.chameleon = function (options) {
-        options = options || {};
+                        if (settings.img.length) {
+                            var $canvas = setAttributes($('<canvas>'), {
+                                    'class': clearSel(_s.sel.chmln_canvas),
+                                    'style': 'display: none;',
+                                    'width': _s.canvas.w,
+                                    'height': _s.canvas.h
+                                }),
+                                img = new Image(),
+                                item_colors = [];
 
-        var $cur_elem = $(this),
-            colorize = function () {
-                var $this = $(this),
-                    settings = $.extend({
-                        img: $this.find(_s.sel.chmln_img).first(),
-                        dummy_back: 'ededef',
-                        dummy_front: '4f5155',
-                        adapt_colors: true,
-                        apply_colors: true,
-                        data_colors: false,
-                        insert_colors: false,
-                        all_colors: false,
-                        async_colorize: false,
-                        rules: {},
-                        adapt_limit: 200,
-                        alpha: 200,
-                        color_distinction: 120
-                    }, options);
+                            $this.append($canvas);
 
-                if (settings.img.length) {
-                    var $canvas = setAttributes($('<canvas>'), {
-                        'class': clearSel(_s.sel.chmln_canvas),
-                        'style': 'display: none;',
-                        'width': _s.canvas.w,
-                        'height': _s.canvas.h
-                    });
+                            img.onload = function () {
+                                var ctx = $canvas[0].getContext("2d"),
+                                    img_colors = [];
 
-                    $this.append($canvas);
+                                ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
 
-                    var ctx = $canvas[0].getContext("2d"),
-                        colors = [],
-                        item_colors = [],
-                        img = new Image();
+                                ctx.width = img.width;
+                                ctx.height = img.height;
+                                ctx.drawImage(img, 0, 0);
 
-                    img.onload = function () {
-                        ctx.width = img.width;
-                        ctx.height = img.height;
-                        ctx.drawImage(img, 0, 0);
+                                var pix = ctx.getImageData(0, 0, img.width, img.height).data,
+                                    rgba_key = '';
 
-                        var pix = ctx.getImageData(0, 0, img.width, img.height).data,
-                            rgba_key = '';
+                                for (var i = 0; i < pix.length; i += 4) {
+                                    if (pix[i + 3] > settings.alpha) {
+                                        rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
 
-                        for (var i = 0; i < pix.length; i += 4) {
-                            if (pix[i + 3] > settings.alpha) {
-                                rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
-
-                                if (colors[rgba_key]) {
-                                    colors[rgba_key] += 1
-                                } else {
-                                    colors[rgba_key] = 1
-                                }
-                            }
-                        }
-
-                        var sorted_colors = sortArrByValue(colors),
-                            used_colors = [];
-
-                        for (var rgba_string in sorted_colors) {
-                            if (sorted_colors.hasOwnProperty(rgba_string)) {
-                                var rgba_arr = rgba_string.split(','),
-                                    is_valid = true;
-
-                                for (var l = 0; l < used_colors.length; l += 1) {
-                                    var color_distinction = 0,
-                                        used_rgba_arr = used_colors[l].split(',');
-
-                                    for (var m = 0; m < 3; m += 1) {
-                                        color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
-                                    }
-
-                                    if (color_distinction < settings.color_distinction) {
-                                        is_valid = false;
-
-                                        break;
+                                        if (item_colors[rgba_key]) {
+                                            item_colors[rgba_key] += 1
+                                        } else {
+                                            item_colors[rgba_key] = 1
+                                        }
                                     }
                                 }
 
-                                if (is_valid) {
-                                    used_colors.push(rgba_string);
-                                    item_colors.push(rgbToHex(rgba_arr));
+                                var sorted_colors = sortArrByValue(item_colors),
+                                    used_colors = [];
+
+                                for (var rgba_string in sorted_colors) {
+                                    if (sorted_colors.hasOwnProperty(rgba_string)) {
+                                        var rgba_arr = rgba_string.split(','),
+                                            is_valid = true;
+
+                                        for (var l = 0; l < used_colors.length; l += 1) {
+                                            var color_distinction = 0,
+                                                used_rgba_arr = used_colors[l].split(',');
+
+                                            for (var m = 0; m < 3; m += 1) {
+                                                color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
+                                            }
+
+                                            if (color_distinction < settings.color_distinction) {
+                                                is_valid = false;
+
+                                                break;
+                                            }
+                                        }
+
+                                        if (is_valid) {
+                                            used_colors.push(rgba_string);
+                                            img_colors.push(rgbToHex(rgba_arr));
+                                        }
+                                    }
                                 }
-                            }
-                        }
 
-                        colors = colorizeItem($this, item_colors, settings);
+                                item_colors = colorizeItem($this, img_colors, settings);
 
-                        if (settings.data_colors)
-                            setAttributes($this, { 'data-colors': colors });
+                                if (settings.data_colors) {
+                                    setAttributes($this, { 'data-colors': item_colors });
+                                }
 
-                        if (typeof settings.after_parsed === 'function')
-                            settings.after_parsed(colors);
-                    };
+                                if (typeof settings.after_parsed === 'function') {
+                                    settings.after_parsed(item_colors);
+                                }
+                            };
 
-                    img.onerror = function () {
-                        if (typeof settings.after_parsed === 'function') settings.after_parsed(colors);
+                            img.onerror = function () {
+                                if (typeof settings.after_parsed === 'function') settings.after_parsed(item_colors);
 
-                        $.error('Chameleon.js: Failed to load resource. URL - ' + img.src);
-                    };
+                                console.error('Chameleon.js: Failed to load resource. URL - ' + img.src);
+                            };
 
-                    ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
-                    img.src = settings.img[0].src;
-                } else {
-                    $.error('Chameleon.js: Image not found. Each individual material must contain at least one image.');
-                }
-            };
-
-        if (!$cur_elem.length) $.error('Chameleon.js: nothing found, probably, bad selector.');
-
-        if (options.async_colorize) {
-            var getNext = function() {
-                    var next = false;
-
-                    if ($cur_elem.length) next = $cur_elem.splice(0, 1)[0];
-
-                    return next;
-                },
-                asyncColorize = function($elem) {
-                    if ($elem) {
-                        colorize.call($elem);
-                        $elem = getNext();
-
-                        if ($elem) {
-                            setTimeout(asyncColorize.bind(null, $elem), 0);
+                            img.src = settings.img[0].src;
                         } else {
-                            if (typeof options.after_async_colorized === 'function')
-                                options.after_async_colorized();
+                            console.error('Chameleon.js: Image not found. Each individual material must contain at least one image.');
                         }
+                    };
+
+                if (!$elements.length) {
+                    console.error('Chameleon.js: nothing found, probably, bad selector.');
+                }
+
+                if (options.async_colorize) {
+                    var getNext = function() {
+                            var next = false;
+
+                            if ($elements.length) next = $elements.splice(0, 1)[0];
+
+                            return next;
+                        },
+                        asyncColorize = function($elem) {
+                            if ($elem) {
+                                colorize.call($elem);
+                                $elem = getNext();
+
+                                if ($elem) {
+                                    setTimeout(asyncColorize.bind(null, $elem), 0);
+                                } else {
+                                    if (typeof options.after_async_colorized === 'function'){
+                                        options.after_async_colorized();
+                                    }
+                                }
+                            }
+                        };
+
+                    if (typeof options.before_async_colorized === 'function') {
+                        options.before_async_colorized();
                     }
+
+                    asyncColorize(getNext());
+                } else {
+                    $elements.each(colorize);
+                }
+            },
+            getImageColors: function($elements, options) {
+                var handleElement = function() {
+                    var $img = $(this),
+                        settings = getSettings({
+                            $img: $img,
+                            alpha: _s.color.alpha,
+                            color_distinction: _s.color.distinction
+                        }, options),
+                        onImgLoad = function(colors) {
+                            console.log(colors, settings);
+                        },
+                        onImgError = function() {
+                            console.log('onImgError');
+                        };
+
+                    parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
                 };
 
-            if (typeof options.before_async_colorized === 'function')
-                options.before_async_colorized();
+                $elements.each(handleElement);
+            }
+        };
 
-            asyncColorize(getNext());
+    $.fn.chameleon = function (action, options) {
+        var $elements = $(this);
+
+        if (typeof action === 'string') {
+            if (actions.hasOwnProperty(action)) {
+                actions[action]($elements, options);
+            } else {
+                console.error('Chameleon.js: Unknown action "' + action + '"!');
+            }
         } else {
-            $cur_elem.each(colorize);
+            actions.colorizeContent($elements, action);
         }
 
         return this;
