@@ -1,7 +1,7 @@
 /*
  * Chameleon - jQuery plugin for colorize content
  *
- * Copyright (c) 2016 Vadim Fedorov
+ * Copyright (c) 2017 Vadim Fedorov
  *
  * Licensed under the MIT license:
  *   http://www.opensource.org/licenses/mit-license.php
@@ -39,6 +39,32 @@
 
     var clearSel = function(sel) {
             return sel.slice(1);
+        },
+        isUndefined = function(val) {
+            return typeof val === 'undefined';
+        },
+        logger = function(msg, type) {
+            var logAction = {
+                'error': function(m) {
+                    console.error(m);
+                },
+                'warn': function(m) {
+                    console.warn(m);
+                },
+                'log': function(m) {
+                    console.log(m);
+                }
+            };
+
+            if (isUndefined(msg)) {
+                logAction.error('Chameleon.js: msg given to logger is undefined!');
+            } else {
+                if (logAction.hasOwnProperty(type)) {
+                    logAction[type](msg);
+                } else {
+                    logAction.error(['Chameleon.js: unknown logAction type!', type]);
+                }
+            }
         },
         getSettings = function(default_settings, options) {
             return $.extend(default_settings, options || {});
@@ -96,7 +122,7 @@
 
                 return hex;
             } else {
-                console.warn('No hex given!');
+                logger('No hex given!', 'warn');
                 return '';
             }
         },
@@ -165,15 +191,15 @@
                 lum_step += 1;
                 front_rgb = hexToRGB(new_hex);
 
-                if (lum_step > limit) break;
+                if (lum_step > limit) {
+                    break;
+                }
             }
 
             return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
         getReadableColor = function(hex) {
-            return lumDiff(hexToRGB(hex), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ?
-                _s.color.black :
-                _s.color.white;
+            return lumDiff(hexToRGB(hex), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
         },
         makeColorReadable = function (back_hex, limit, front_hex) {
             var back_rgb = hexToRGB(back_hex),
@@ -184,8 +210,9 @@
             if (lumDiff(back_rgb, front_rgb) >= _s.color.readable_lum_diff) {
                 new_hex = addHash(front_hex);
             } else {
-                if (lumDiff(back_rgb, hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff)
+                if (lumDiff(back_rgb, hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
+                }
 
                 new_hex = findReadableColor(back_rgb, front_rgb, front_hex, lum_dir, limit);
             }
@@ -239,83 +266,8 @@
 
             return $container;
         },
-        parseImageColors = function($container, img_src, settings, onImgLoad, onImgError) {
-            var $canvas = setAttributes($('<canvas>'), {
-                    'class': clearSel(_s.sel.chmln_canvas),
-                    'style': 'display: none;',
-                    'width': _s.canvas.w,
-                    'height': _s.canvas.h
-                }),
-                img = new Image();
-
-            $container.append($canvas);
-
-            img.onload = function () {
-                var ctx = $canvas[0].getContext("2d"),
-                    img_colors = [];
-
-                ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
-
-                ctx.width = img.width;
-                ctx.height = img.height;
-                ctx.drawImage(img, 0, 0);
-
-                var pix = ctx.getImageData(0, 0, img.width, img.height).data,
-                    rgba_key = '';
-
-                for (var i = 0; i < pix.length; i += 4) {
-                    if (pix[i + 3] > settings.alpha) {
-                        rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
-
-                        if (img_colors[rgba_key]) {
-                            img_colors[rgba_key] += 1
-                        } else {
-                            img_colors[rgba_key] = 1
-                        }
-                    }
-                }
-
-                var sorted_colors = sortArrByValue(img_colors),
-                    used_colors = [];
-
-                img_colors = [];
-
-                for (var rgba_string in sorted_colors) {
-                    if (sorted_colors.hasOwnProperty(rgba_string)) {
-                        var rgba_arr = rgba_string.split(','),
-                            is_valid = true;
-
-                        for (var l = 0; l < used_colors.length; l += 1) {
-                            var color_distinction = 0,
-                                used_rgba_arr = used_colors[l].split(',');
-
-                            for (var m = 0; m < 3; m += 1) {
-                                color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
-                            }
-
-                            if (color_distinction < settings.color_distinction) {
-                                is_valid = false;
-
-                                break;
-                            }
-                        }
-
-                        if (is_valid) {
-                            used_colors.push(rgba_string);
-                            img_colors.push(rgbToHex(rgba_arr));
-                        }
-                    }
-                }
-
-                onImgLoad(img_colors);
-            };
-
-            img.onerror = onImgError;
-
-            img.src = img_src;
-        },
         colorizeItem = function (item_elem, img_colors, settings) {
-            var $elem = item_elem || false;
+            var $elem = item_elem || [];
 
             if ($elem.length) {
                 var marks = [],
@@ -396,121 +348,136 @@
 
             return item_colors;
         },
+        parseImageColors = function($container, img_src, settings, onImgLoad, onImgError) {
+            var img = new Image();
+
+            img.onload = function () {
+                var $canvas = setAttributes($('<canvas>'), {
+                    'class': clearSel(_s.sel.chmln_canvas),
+                    'style': 'display: none;',
+                    'width': _s.canvas.w,
+                    'height': _s.canvas.h
+                });
+
+                $container.append($canvas);
+
+                var ctx = $canvas[0].getContext("2d"),
+                    img_colors = [];
+
+                ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
+
+                ctx.width = img.width;
+                ctx.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                var pix = ctx.getImageData(0, 0, img.width, img.height).data,
+                    rgba_key = '';
+
+                for (var i = 0; i < pix.length; i += 4) {
+                    if (pix[i + 3] > settings.alpha) {
+                        rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
+
+                        if (img_colors[rgba_key]) {
+                            img_colors[rgba_key] += 1
+                        } else {
+                            img_colors[rgba_key] = 1
+                        }
+                    }
+                }
+
+                var sorted_colors = sortArrByValue(img_colors),
+                    used_colors = [];
+
+                img_colors = [];
+
+                for (var rgba_string in sorted_colors) {
+                    if (sorted_colors.hasOwnProperty(rgba_string)) {
+                        var rgba_arr = rgba_string.split(','),
+                            is_valid = true;
+
+                        for (var l = 0; l < used_colors.length; l += 1) {
+                            var color_distinction = 0,
+                                used_rgba_arr = used_colors[l].split(',');
+
+                            for (var m = 0; m < 3; m += 1) {
+                                color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
+                            }
+
+                            if (color_distinction < settings.color_distinction) {
+                                is_valid = false;
+
+                                break;
+                            }
+                        }
+
+                        if (is_valid) {
+                            used_colors.push(rgba_string);
+                            img_colors.push(rgbToHex(rgba_arr));
+                        }
+                    }
+                }
+
+                onImgLoad(img_colors, $container, settings);
+            };
+
+            img.onerror = function() {
+                onImgError($container, settings);
+            };
+
+            img.src = img_src;
+        },
         actions = {
             colorizeContent: function($elements, options) {
-                var colorize = function () {
+                var settings = getSettings({
+                        $img: null,
+                        dummy_back: 'ededef',
+                        dummy_front: '4f5155',
+                        adapt_colors: true,
+                        apply_colors: true,
+                        data_colors: false,
+                        insert_colors: false,
+                        all_colors: false,
+                        async_colorize: true,
+                        rules: {},
+                        adapt_limit: 200,
+                        alpha: _s.color.alpha,
+                        color_distinction: _s.color.distinction
+                    }, options),
+                    colorize = function () {
                         var $this = $(this),
-                            settings = getSettings({
-                                img: $this.find(_s.sel.chmln_img).first(),
-                                dummy_back: 'ededef',
-                                dummy_front: '4f5155',
-                                adapt_colors: true,
-                                apply_colors: true,
-                                data_colors: false,
-                                insert_colors: false,
-                                all_colors: false,
-                                async_colorize: false,
-                                rules: {},
-                                adapt_limit: 200,
-                                alpha: _s.color.alpha,
-                                color_distinction: _s.color.distinction
-                            }, options);
+                            item_settings = getSettings(settings, { $img: $this.find(_s.sel.chmln_img).first() });
 
-                        if (settings.img.length) {
-                            var $canvas = setAttributes($('<canvas>'), {
-                                    'class': clearSel(_s.sel.chmln_canvas),
-                                    'style': 'display: none;',
-                                    'width': _s.canvas.w,
-                                    'height': _s.canvas.h
-                                }),
-                                img = new Image(),
-                                item_colors = [];
+                        if (item_settings.$img.length) {
+                            parseImageColors($this, item_settings.$img[0].src, settings,
+                                function(img_colors, $container, settings) {
+                                    var item_colors = colorizeItem($container, img_colors, settings);
 
-                            $this.append($canvas);
-
-                            img.onload = function () {
-                                var ctx = $canvas[0].getContext("2d"),
-                                    img_colors = [];
-
-                                ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
-
-                                ctx.width = img.width;
-                                ctx.height = img.height;
-                                ctx.drawImage(img, 0, 0);
-
-                                var pix = ctx.getImageData(0, 0, img.width, img.height).data,
-                                    rgba_key = '';
-
-                                for (var i = 0; i < pix.length; i += 4) {
-                                    if (pix[i + 3] > settings.alpha) {
-                                        rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
-
-                                        if (item_colors[rgba_key]) {
-                                            item_colors[rgba_key] += 1
-                                        } else {
-                                            item_colors[rgba_key] = 1
-                                        }
+                                    if (item_settings.data_colors) {
+                                        setAttributes($container, { 'data-colors': item_colors });
                                     }
-                                }
 
-                                var sorted_colors = sortArrByValue(item_colors),
-                                    used_colors = [];
-
-                                for (var rgba_string in sorted_colors) {
-                                    if (sorted_colors.hasOwnProperty(rgba_string)) {
-                                        var rgba_arr = rgba_string.split(','),
-                                            is_valid = true;
-
-                                        for (var l = 0; l < used_colors.length; l += 1) {
-                                            var color_distinction = 0,
-                                                used_rgba_arr = used_colors[l].split(',');
-
-                                            for (var m = 0; m < 3; m += 1) {
-                                                color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
-                                            }
-
-                                            if (color_distinction < settings.color_distinction) {
-                                                is_valid = false;
-
-                                                break;
-                                            }
-                                        }
-
-                                        if (is_valid) {
-                                            used_colors.push(rgba_string);
-                                            img_colors.push(rgbToHex(rgba_arr));
-                                        }
+                                    if (typeof item_settings.after_parsed === 'function') {
+                                        item_settings.after_parsed(item_colors);
                                     }
+                                },
+                                function() {
+                                    if (typeof item_settings.after_parsed === 'function') {
+                                        item_settings.after_parsed();
+                                    }
+
+                                    logger('Chameleon.js: Failed to load resource. URL - ' + img.src, 'error');
                                 }
-
-                                item_colors = colorizeItem($this, img_colors, settings);
-
-                                if (settings.data_colors) {
-                                    setAttributes($this, { 'data-colors': item_colors });
-                                }
-
-                                if (typeof settings.after_parsed === 'function') {
-                                    settings.after_parsed(item_colors);
-                                }
-                            };
-
-                            img.onerror = function () {
-                                if (typeof settings.after_parsed === 'function') settings.after_parsed(item_colors);
-
-                                console.error('Chameleon.js: Failed to load resource. URL - ' + img.src);
-                            };
-
-                            img.src = settings.img[0].src;
+                            );
                         } else {
-                            console.error('Chameleon.js: Image not found. Each individual material must contain at least one image.');
+                            logger('Chameleon.js: Image not found. Each individual material must contain at least one image.', 'error');
                         }
                     };
 
                 if (!$elements.length) {
-                    console.error('Chameleon.js: nothing found, probably, bad selector.');
+                    logger('Chameleon.js: nothing found, probably, bad selector.', 'error');
                 }
 
-                if (options.async_colorize) {
+                if (settings.async_colorize) {
                     var getNext = function() {
                             var next = false;
 
@@ -526,15 +493,15 @@
                                 if ($elem) {
                                     setTimeout(asyncColorize.bind(null, $elem), 0);
                                 } else {
-                                    if (typeof options.after_async_colorized === 'function'){
-                                        options.after_async_colorized();
+                                    if (typeof settings.after_async_colorized === 'function') {
+                                        settings.after_async_colorized();
                                     }
                                 }
                             }
                         };
 
-                    if (typeof options.before_async_colorized === 'function') {
-                        options.before_async_colorized();
+                    if (typeof settings.before_async_colorized === 'function') {
+                        settings.before_async_colorized();
                     }
 
                     asyncColorize(getNext());
@@ -550,14 +517,18 @@
                             alpha: _s.color.alpha,
                             color_distinction: _s.color.distinction
                         }, options),
-                        onImgLoad = function(colors) {
-                            console.log(colors, settings);
+                        onImgLoad = settings.onSuccess || function(colors, $container, settings) {
+                            logger(['Chameleon.js: getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
                         },
-                        onImgError = function() {
-                            console.log('onImgError');
+                        onImgError = settings.onError || function($container, settings) {
+                            logger(['Chameleon.js: getImageColors error on img load!', $container, settings], 'error');
                         };
 
-                    parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
+                    if ($img[0].nodeName.toLowerCase() === 'img') {
+                        parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
+                    } else {
+                        logger('Chameleon.js: given element is not <img>!', 'error');
+                    }
                 };
 
                 $elements.each(handleElement);
@@ -571,7 +542,7 @@
             if (actions.hasOwnProperty(action)) {
                 actions[action]($elements, options);
             } else {
-                console.error('Chameleon.js: Unknown action "' + action + '"!');
+                logger(['Chameleon.js: Unknown action!', action], 'error');
             }
         } else {
             actions.colorizeContent($elements, action);
