@@ -26,10 +26,16 @@
                 w: 1000,
                 h: 1000
             },
+            actions: {
+
+            },
             sel: {
                 chmln: '.chmln',
-                chmln_canvas: '.chmln_canvas',
-                chmln_img: '.chmln_img'
+                chmln_canvas: '.chmln__canvas',
+                chmln_img: '.chmln__img',
+                chmln_colors: '.chmln__colors',
+                chmln_async_colorize: '.chmln_async_colorize',
+                chmln_colorize_done: '.chmln_colorize_done'
             },
             $: {},
             tpl: {}
@@ -64,6 +70,25 @@
                 } else {
                     logAction.error(['Chameleon.js: unknown logAction type!', type]);
                 }
+            }
+        },
+        getStopColorize = function($elem, val, remove) {
+            if ($elem && $elem.length) {
+                if (!isUndefined(val)) {
+                    if ($elem.hasClass(clearSel(_s.sel.chmln_async_colorize))) {
+                        $elem.attr('data-stopColorize', val);
+                    } else {
+                        logger('Chameleon.js: cant stop colorize in not async_colorize mode!', 'warn');
+                    }
+                }
+
+                if (remove) {
+                    $elem.removeAttr('data-stopColorize');
+                }
+
+                return $elem.attr('data-stopColorize');
+            } else {
+                logger('Chameleon.js: getStopColorize $elem not given or all $elems are already colorized!', 'warn');
             }
         },
         getSettings = function(default_settings, options) {
@@ -329,12 +354,12 @@
 
                     if (settings.insert_colors) {
                         if (i === 0) {
-                            var $colors_container = $elem.find('.chmln_colors');
+                            var $colors_container = $elem.find(_s.sel.chmln_colors);
 
                             if ($colors_container.length) {
                                 $colors_container.html('');
                             } else {
-                                $colors_container = $('<div class="chmln_colors">');
+                                $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
                                 $elem.append($colors_container);
                             }
 
@@ -355,8 +380,8 @@
                 var $canvas = setAttributes($('<canvas>'), {
                     'class': clearSel(_s.sel.chmln_canvas),
                     'style': 'display: none;',
-                    'width': _s.canvas.w,
-                    'height': _s.canvas.h
+                    'width': img.width,
+                    'height': img.height
                 });
 
                 $container.append($canvas);
@@ -437,7 +462,7 @@
                         data_colors: false,
                         insert_colors: false,
                         all_colors: false,
-                        async_colorize: true,
+                        async_colorize: false,
                         rules: {},
                         adapt_limit: 200,
                         alpha: _s.color.alpha,
@@ -451,6 +476,8 @@
                             parseImageColors($this, item_settings.$img[0].src, settings,
                                 function(img_colors, $container, settings) {
                                     var item_colors = colorizeItem($container, img_colors, settings);
+
+                                    $container.addClass(clearSel(_s.sel.chmln_colorize_done));
 
                                     if (item_settings.data_colors) {
                                         setAttributes($container, { 'data-colors': item_colors });
@@ -477,25 +504,33 @@
                     logger('Chameleon.js: nothing found, probably, bad selector.', 'error');
                 }
 
+                $elements
+                    .removeClass(clearSel(_s.sel.chmln_colorize_done))
+                    .toggleClass(clearSel(_s.sel.chmln_async_colorize), !!settings.async_colorize);
+
                 if (settings.async_colorize) {
                     var getNext = function() {
                             var next = false;
 
                             if ($elements.length) next = $elements.splice(0, 1)[0];
 
-                            return next;
+                            return $(next);
                         },
                         asyncColorize = function($elem) {
-                            if ($elem) {
-                                colorize.call($elem);
-                                $elem = getNext();
+                            if ($elem && $elem.length) {
+                                if (isUndefined(getStopColorize($elem))) {
+                                    colorize.call($elem);
+                                    $elem = getNext();
 
-                                if ($elem) {
-                                    setTimeout(asyncColorize.bind(null, $elem), 0);
-                                } else {
-                                    if (typeof settings.after_async_colorized === 'function') {
-                                        settings.after_async_colorized();
+                                    if ($elem) {
+                                        setTimeout(asyncColorize.bind(null, $elem), 0);
+                                    } else {
+                                        if (typeof settings.after_async_colorized === 'function') {
+                                            settings.after_async_colorized();
+                                        }
                                     }
+                                } else {
+                                    getStopColorize($elem, '', true);
                                 }
                             }
                         };
@@ -532,6 +567,9 @@
                 };
 
                 $elements.each(handleElement);
+            },
+            stopColorize: function($elements, options) {
+                getStopColorize($elements.filter(':not(' + _s.sel.chmln_colorize_done + ')'), 1);
             }
         };
 
