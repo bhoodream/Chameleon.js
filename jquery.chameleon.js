@@ -13,7 +13,7 @@
 
 'use strict';
 
-(function ($, undefined) {
+(function ($, window, undefined) {
     var _s = {
             color: {
                 black: '#000000',
@@ -52,23 +52,23 @@
         logger = function(msg, type) {
             var logAction = {
                 'error': function(m) {
-                    console.error(m);
+                    console.error('Chameleon.js:', m);
                 },
                 'warn': function(m) {
-                    console.warn(m);
+                    console.warn('Chameleon.js:', m);
                 },
                 'log': function(m) {
-                    console.log(m);
+                    console.log('Chameleon.js:', m);
                 }
             };
 
             if (isUndefined(msg)) {
-                logAction.error('Chameleon.js: msg given to logger is undefined!');
+                logAction.error('Msg given to logger is undefined!');
             } else {
                 if (logAction.hasOwnProperty(type)) {
                     logAction[type](msg);
                 } else {
-                    logAction.error(['Chameleon.js: unknown logAction type!', type]);
+                    logAction.error(['Unknown logAction type!', type]);
                 }
             }
         },
@@ -78,7 +78,7 @@
                     if ($elem.hasClass(clearSel(_s.sel.chmln_async_colorize))) {
                         $elem.attr('data-stopColorize', val);
                     } else {
-                        logger('Chameleon.js: cant stop colorize in not async_colorize mode!', 'warn');
+                        logger('Cant stop colorize in not async_colorize mode!', 'warn');
                     }
                 }
 
@@ -88,7 +88,7 @@
 
                 return $elem.attr('data-stopColorize');
             } else {
-                logger('Chameleon.js: getStopColorize $elem not given or all $elems are already colorized!', 'warn');
+                logger('getStopColorize $elem not given or all $elems are already colorized!', 'warn');
             }
         },
         getSettings = function(default_settings, options) {
@@ -492,16 +492,16 @@
                                         item_settings.after_parsed();
                                     }
 
-                                    logger('Chameleon.js: Failed to load resource. URL - ' + img.src, 'error');
+                                    logger('Failed to load resource. URL - ' + img.src, 'error');
                                 }
                             );
                         } else {
-                            logger('Chameleon.js: Image not found. Each individual material must contain at least one image.', 'error');
+                            logger('Image not found. Each individual material must contain at least one image.', 'error');
                         }
                     };
 
                 if (!$elements.length) {
-                    logger('Chameleon.js: nothing found, probably, bad selector.', 'error');
+                    logger('Nothing found, probably, bad selector.', 'error');
                 }
 
                 $elements
@@ -553,23 +553,27 @@
                             color_distinction: _s.color.distinction
                         }, options),
                         onImgLoad = settings.onSuccess || function(colors, $container, settings) {
-                            logger(['Chameleon.js: getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
+                            logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
                         },
                         onImgError = settings.onError || function($container, settings) {
-                            logger(['Chameleon.js: getImageColors error on img load!', $container, settings], 'error');
+                            logger(['getImageColors error on img load!', $container, settings], 'error');
                         };
 
                     if ($img[0].nodeName.toLowerCase() === 'img') {
                         parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
                     } else {
-                        logger('Chameleon.js: given element is not <img>!', 'error');
+                        logger('Given element is not <img>!', 'error');
                     }
                 };
 
                 $elements.each(handleElement);
             },
             stopColorize: function($elements, options) {
-                getStopColorize($elements.filter(':not(' + _s.sel.chmln_colorize_done + ')'), 1);
+                var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln_colorize_done + ')');
+
+                if ($not_done_elements.length) {
+                    getStopColorize($not_done_elements, 1);
+                }
             }
         };
 
@@ -580,7 +584,7 @@
             if (actions.hasOwnProperty(action)) {
                 actions[action]($elements, options);
             } else {
-                logger(['Chameleon.js: Unknown action!', action], 'error');
+                logger(['Unknown action!', action], 'error');
             }
         } else {
             actions.colorizeContent($elements, action);
@@ -588,4 +592,4 @@
 
         return this;
     };
-})(jQuery);
+})(jQuery, window);
