@@ -18,6 +18,7 @@
             color: {
                 black: '#000000',
                 white: '#ffffff',
+                adapt_limit: 200,
                 alpha: 200,
                 distinction: 120,
                 readable_lum_diff: 5
@@ -467,7 +468,7 @@
                         all_colors: false,
                         async_colorize: false,
                         rules: {},
-                        adapt_limit: 200,
+                        adapt_limit: _s.color.adapt_limit,
                         alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction
                     }, options),
@@ -577,6 +578,12 @@
                 if ($not_done_elements.length) {
                     getStopColorize($not_done_elements, 1);
                 }
+            },
+            get_s: {
+                with_result: true,
+                result: function() {
+                    return _s;
+                }
             }
         };
 
@@ -585,6 +592,10 @@
 
         if (typeof action === 'string') {
             if (actions.hasOwnProperty(action)) {
+                if (actions[action].with_result) {
+                    return actions[action].result(options);
+                }
+
                 actions[action]($elements, options);
             } else {
                 logger(['Unknown action!', action], 'error');
