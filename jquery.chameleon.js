@@ -92,6 +92,23 @@
                 logger('getStopColorize $elem not given or all $elems are already colorized!', 'warn');
             }
         },
+        getDefaultSettings = function() {
+            return {
+                $img: null,
+                dummy_back: 'ededef',
+                dummy_front: '4f5155',
+                adapt_colors: true,
+                apply_colors: true,
+                data_colors: false,
+                insert_colors: false,
+                all_colors: false,
+                async_colorize: false,
+                rules: {},
+                adapt_limit: _s.color.adapt_limit,
+                alpha: _s.color.alpha,
+                color_distinction: _s.color.distinction
+            };
+        },
         getSettings = function(default_settings, options) {
             return $.extend(default_settings, options || {});
         },
@@ -457,21 +474,7 @@
         },
         actions = {
             colorizeContent: function($elements, options) {
-                var settings = getSettings({
-                        $img: null,
-                        dummy_back: 'ededef',
-                        dummy_front: '4f5155',
-                        adapt_colors: true,
-                        apply_colors: true,
-                        data_colors: false,
-                        insert_colors: false,
-                        all_colors: false,
-                        async_colorize: false,
-                        rules: {},
-                        adapt_limit: _s.color.adapt_limit,
-                        alpha: _s.color.alpha,
-                        color_distinction: _s.color.distinction
-                    }, options),
+                var settings = getSettings(getDefaultSettings(), options),
                     colorize = function () {
                         var $this = $(this),
                             item_settings = getSettings(settings, { $img: $this.find(_s.sel.chmln_img).first() });
@@ -580,9 +583,13 @@
                 }
             },
             get_s: {
-                with_result: true,
                 result: function() {
                     return _s;
+                }
+            },
+            getDefaultSettings: {
+                result: function() {
+                    return getDefaultSettings();
                 }
             }
         };
@@ -592,7 +599,7 @@
 
         if (typeof action === 'string') {
             if (actions.hasOwnProperty(action)) {
-                if (actions[action].with_result) {
+                if (actions[action].result && typeof actions[action].result === 'function') {
                     return actions[action].result(options);
                 }
 
