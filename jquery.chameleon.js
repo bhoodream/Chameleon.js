@@ -94,19 +94,22 @@
         },
         getDefaultSettings = function() {
             return {
-                $img: null,
                 dummy_back: 'ededef',
                 dummy_front: '4f5155',
-                adapt_colors: true,
-                apply_colors: true,
-                data_colors: false,
-                insert_colors: false,
-                all_colors: false,
+                color_alpha: _s.color.alpha,
+                color_distinction: _s.color.distinction,
+                color_adapt_limit: _s.color.adapt_limit,
                 async_colorize: false,
+                apply_colors: true,
+                adapt_colors: true,
+                all_colors: false,
+                insert_colors: false,
+                data_colors: false,
+                $img: null,
                 rules: {},
-                adapt_limit: _s.color.adapt_limit,
-                alpha: _s.color.alpha,
-                color_distinction: _s.color.distinction
+                after_parsed: function() {},
+                before_async_colorized: function() {},
+                after_async_colorized: function() {}
             };
         },
         getSettings = function(default_settings, options) {
@@ -267,7 +270,9 @@
             return new_hex;
         },
         addAttrsToColorSpan = function ($elem, hex, class_name) {
-            if (!($elem instanceof jQuery)) $elem = $($elem);
+            if (!($elem instanceof jQuery)) {
+                $elem = $($elem);
+            }
 
             hex = addHashToHex(prepareHex(hex));
 
@@ -277,19 +282,17 @@
                 .css({ 'background-color': hex, 'color': getReadableColor(hex) })
                 .html(hex)
                 .on('click', function (e) {
-                    if (e.target !== this) return false;
-
                     window.open('http://www.colorhexa.com/' + prepareHex(hex), '_blank');
 
                     return false;
                 });
         },
-        buildSpanColor = function (adapt_hex, source_hex, background) {
+        buildSpanColor = function (adapt_hex, source_hex) {
             var $source_color_span = $('<span>'),
                 $adapt_color_span = $('<span>'),
                 $adapt_legend = $('<span>'),
-                $container = $('<span>'),
-                is_different = source_hex ? adapt_hex.toLowerCase() !== addHashToHex(source_hex.toLowerCase()) : false;
+                $container = $('<div>'),
+                is_different = source_hex ? prepareHex(adapt_hex) !== prepareHex(source_hex) : false;
 
             addAttrsToColorSpan($adapt_color_span, adapt_hex, '');
 
@@ -305,8 +308,8 @@
                     .html('&nbsp;&#8594;&nbsp;');
 
                 $adapt_color_span.addClass('adapt_hex');
-                $container.append($source_color_span);
                 $source_color_span.append($adapt_legend);
+                $container.append($source_color_span);
             }
 
             $container.append($adapt_color_span);
@@ -314,51 +317,45 @@
             return $container;
         },
         colorizeItem = function (item_elem, img_colors, settings) {
-            var $elem = item_elem || [];
+            var $elem = item_elem || [],
+                item_colors = [];
 
             if ($elem.length) {
                 var marks = [],
                     background = img_colors[0] || prepareHex(settings.dummy_back),
-                    item_colors = [addHashToHex(background)],
-                    mark_amt_affix = 1;
+                    mark_amt_affix = 1,
+                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
-                var tmp_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
+                item_colors.push(addHashToHex(background));
 
-                while (tmp_marks.length > 0) {
-                    marks.push(tmp_marks);
+                while (cur_marks.length > 0) {
+                    marks.push(cur_marks);
                     mark_amt_affix += 1;
-                    tmp_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
+                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
                 }
 
                 while (img_colors.length < mark_amt_affix) {
                     img_colors.push(prepareHex(settings.dummy_front));
                 }
 
-                if (settings.all_colors) mark_amt_affix = img_colors.length;
-
                 if (settings.adapt_colors) {
-                    item_colors = item_colors.concat(
-                        img_colors.slice(1, mark_amt_affix).map(
-                            makeColorReadable.bind(this, background, settings.adapt_limit)
-                        )
-                    );
+                    var adapted_colors =
+                        img_colors
+                            .slice(1, mark_amt_affix)
+                            .map(makeColorReadable.bind(this, background, settings.color_adapt_limit));
+
+                    item_colors = item_colors.concat(adapted_colors);
                 } else {
                     for (var m = 1; m < mark_amt_affix; m += 1) {
                         item_colors.push(addHashToHex(img_colors[m]));
                     }
                 }
 
-                var j = 0;
-
                 if (settings.apply_colors) {
                     $elem.css('background-color', addHashToHex(background));
-                }
 
-                for (var i = 0; i < marks.length; i += 1) {
-                    j += 1;
-
-                    if (settings.apply_colors) {
-                        marks[i].css('color', item_colors[j]);
+                    for (var i = 0; i < marks.length; i += 1) {
+                        marks[i].css('color', item_colors[i + 1]);
 
                         for (var l = 0; l < marks[i].length; l += 1) {
                             var node_name = marks[i][l].nodeName.toLowerCase();
@@ -368,29 +365,47 @@
                                     length = rules.length;
 
                                 for (var k = 0; k < length; k += 1) {
-                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[j];
+                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[i + 1];
                                 }
                             }
                         }
                     }
-
-                    if (settings.insert_colors) {
-                        if (i === 0) {
-                            var $colors_container = $elem.find(_s.sel.chmln_colors);
-
-                            if ($colors_container.length) {
-                                $colors_container.html('');
-                            } else {
-                                $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
-                                $elem.append($colors_container);
-                            }
-
-                            $colors_container.append(buildSpanColor(addHashToHex(background)));
-                        }
-
-                        $colors_container.append(buildSpanColor(item_colors[j], img_colors[j], background));
-                    }
                 }
+
+                if (settings.insert_colors) {
+                    var $colors_container = $elem.find(_s.sel.chmln_colors);
+
+                    if ($colors_container.length) {
+                        $colors_container.html('');
+                    } else {
+                        $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
+                        $elem.append($colors_container);
+                    }
+
+                    $.each(img_colors, function (index, item) {
+                        if (index === 0) {
+                            $colors_container.append(buildSpanColor(background));
+                        } else {
+                            if (item_colors[index]) {
+                                $colors_container.append(buildSpanColor(item_colors[index], item));
+                            } else if (settings.all_colors) {
+                                $colors_container.append(buildSpanColor(item));
+                            }
+                        }
+                    });
+                }
+
+                if (settings.all_colors) {
+                    var rest_img_colors = img_colors.slice(item_colors.length).map(addHashToHex);
+
+                    item_colors = item_colors.concat(rest_img_colors);
+                }
+
+                if (settings.data_colors) {
+                    setAttributes($elem, {'data-colors': item_colors});
+                }
+
+                $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
             }
 
             return item_colors;
@@ -420,7 +435,7 @@
                         rgba_key = '';
 
                     for (var i = 0; i < pix.length; i += 4) {
-                        if (pix[i + 3] > settings.alpha) {
+                        if (pix[i + 3] > settings.color_alpha) {
                             rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
 
                             if (img_colors[rgba_key]) {
@@ -466,7 +481,7 @@
                     onImgLoad(img_colors, $container, settings);
                 },
                 'error': function() {
-                    onImgError($container, settings);
+                    onImgError(img_src, $container, settings);
                 }
             });
 
@@ -484,22 +499,16 @@
                                 function(img_colors, $container, settings) {
                                     var item_colors = colorizeItem($container, img_colors, settings);
 
-                                    $container.addClass(clearSel(_s.sel.chmln_colorize_done));
-
-                                    if (item_settings.data_colors) {
-                                        setAttributes($container, { 'data-colors': item_colors });
-                                    }
-
                                     if (typeof item_settings.after_parsed === 'function') {
                                         item_settings.after_parsed(item_colors);
                                     }
                                 },
-                                function() {
+                                function(img_src, $container, settings) {
                                     if (typeof item_settings.after_parsed === 'function') {
-                                        item_settings.after_parsed();
+                                        item_settings.after_parsed([]);
                                     }
 
-                                    logger('Failed to load resource. URL - ' + img.src, 'error');
+                                    logger('Failed to load image with url "' + img_src + '".', 'error');
                                 }
                             );
                         } else {
@@ -519,7 +528,9 @@
                     var getNext = function() {
                             var next = false;
 
-                            if ($elements.length) next = $elements.splice(0, 1)[0];
+                            if ($elements.length) {
+                                next = $elements.splice(0, 1)[0];
+                            }
 
                             return $(next);
                         },
@@ -556,14 +567,14 @@
                     var $img = $(this),
                         settings = getSettings({
                             $img: $img,
-                            alpha: _s.color.alpha,
+                            color_alpha: _s.color.alpha,
                             color_distinction: _s.color.distinction
                         }, options),
                         onImgLoad = settings.onSuccess || function(colors, $container, settings) {
                             logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
                         },
-                        onImgError = settings.onError || function($container, settings) {
-                            logger(['getImageColors error on img load!', $container, settings], 'error');
+                        onImgError = settings.onError || function(img_src, $container, settings) {
+                            logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
                         };
 
                     if ($img[0].nodeName.toLowerCase() === 'img') {
