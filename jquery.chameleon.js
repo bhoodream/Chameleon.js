@@ -23,6 +23,20 @@
                 distinction: 120,
                 readable_lum_diff: 5
             },
+            limits: {
+                color_alpha: {
+                    min: 0,
+                    max: 255
+                },
+                color_distinction: {
+                    min: 0,
+                    max: 765
+                },
+                color_adapt_limit: {
+                    min: 0,
+                    max: 1000
+                }
+            },
             canvas: {
                 w: 1000,
                 h: 1000
@@ -99,7 +113,7 @@
                 color_alpha: _s.color.alpha,
                 color_distinction: _s.color.distinction,
                 color_adapt_limit: _s.color.adapt_limit,
-                async_colorize: false,
+                async_colorize: true,
                 apply_colors: true,
                 adapt_colors: true,
                 all_colors: false,
@@ -112,8 +126,106 @@
                 after_async_colorized: function() {}
             };
         },
-        getSettings = function(default_settings, options) {
-            return $.extend(default_settings, options || {});
+        extendSettings = function(settings, options) {
+            return $.extend(settings || {}, options || {});
+        },
+        validateSettings = function(settings) {
+            if (typeof settings === 'object') {
+                var val_types = [
+                        {
+                            type: 'number',
+                            msg: 'Should be a number.',
+                            items: ['color_alpha', 'color_distinction', 'color_adapt_limit']
+                        },
+                        {
+                            type: 'hex',
+                            msg: 'Should be a hex color: #000 or #000000.',
+                            items: ['dummy_back', 'dummy_front']
+                        },
+                        {
+                            type: 'boolean',
+                            msg: 'Should be a boolean value: true or false.',
+                            items: ['async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
+                        },
+                        {
+                            type: 'object',
+                            msg: 'Should be an object.',
+                            items: ['$img', 'rules']
+                        },
+                        {
+                            type: 'function',
+                            msg: 'Should be a function.',
+                            items: ['after_parsed', 'before_async_colorized', 'after_async_colorized']
+                        }
+                    ],
+                    validation = {
+                        numberIsValid: function(val, name) {
+                            val = parseFloat(val);
+
+                            if (_s.limits.hasOwnProperty(name)) {
+                                return typeof val === 'number' && _s.limits[name].min <= val && val <= _s.limits[name].max;
+                            } else {
+                                logger('validateSettings/checkNumberValue - limits for number setting "' + name + '" are missing!', 'warn');
+
+                                return true;
+                            }
+                        },
+                        hexIsValid: function(val) {
+                            return /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase());
+                        },
+                        booleanIsValid: function(val) {
+                            return typeof val === 'boolean';
+                        },
+                        objectIsValid: function(val) {
+                            return typeof val === 'object';
+                        },
+                        functionIsValid: function(val) {
+                            return typeof val === 'function';
+                        }
+                    },
+                    checkProp = function(prop, settings) {
+                        if (settings.hasOwnProperty(prop)) {
+                            var type = false,
+                                msg = '';
+
+                            $.each(val_types, function(index, val_type) {
+                                if (val_type.items.indexOf(prop) !== -1) {
+                                    type = val_type.type;
+                                    msg = val_type.msg;
+
+                                    if (type === 'number') {
+                                        msg += ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
+                                    }
+
+                                    return false;
+                                }
+                            });
+
+                            if (type) {
+                                check.push({
+                                    prop: prop,
+                                    valid: validation[type + 'IsValid'](settings[prop], prop),
+                                    msg: msg,
+                                    value: settings[prop]
+                                });
+                            } else {
+                                logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
+                            }
+                        }
+                    },
+                    isNotValid = function(c) { return !c.valid; },
+                    check = [];
+
+                for (var prop in settings) {
+                    if (settings.hasOwnProperty(prop)) {
+                        checkProp(prop, settings);
+                    }
+                }
+
+                return check.filter(isNotValid);
+            }
+
+            return [];
         },
         setAttributes = function ($elem, attrs) {
             for (var a in attrs) {
@@ -489,10 +601,10 @@
         },
         actions = {
             colorizeContent: function($elements, options) {
-                var settings = getSettings(getDefaultSettings(), options),
+                var settings = extendSettings(getDefaultSettings(), options),
                     colorize = function () {
                         var $this = $(this),
-                            item_settings = getSettings(settings, { $img: $this.find(_s.sel.chmln_img).first() });
+                            item_settings = extendSettings(settings, { $img: $this.find(_s.sel.chmln_img).first() });
 
                         if (item_settings.$img.length) {
                             parseImageColors($this, item_settings.$img[0].src, settings,
@@ -565,7 +677,7 @@
             getImageColors: function($elements, options) {
                 var handleElement = function() {
                     var $img = $(this),
-                        settings = getSettings({
+                        settings = extendSettings({
                             $img: $img,
                             color_alpha: _s.color.alpha,
                             color_distinction: _s.color.distinction
