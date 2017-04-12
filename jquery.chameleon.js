@@ -29,7 +29,7 @@
                     max: 255
                 },
                 color_distinction: {
-                    min: 0,
+                    min: 50,
                     max: 765
                 },
                 color_adapt_limit: {
@@ -131,7 +131,8 @@
         },
         validateSettings = function(settings) {
             if (typeof settings === 'object') {
-                var val_types = [
+                var fixed_settings = $.extend({}, settings),
+                    val_types = [
                         {
                             type: 'number',
                             msg: 'Should be a number.',
@@ -139,7 +140,7 @@
                         },
                         {
                             type: 'hex',
-                            msg: 'Should be a hex color: #000 or #000000.',
+                            msg: 'Should be a hex color: #xxx or #xxxxxx.',
                             items: ['dummy_back', 'dummy_front']
                         },
                         {
@@ -158,74 +159,128 @@
                             items: ['after_parsed', 'before_async_colorized', 'after_async_colorized']
                         }
                     ],
+                    fixVal = function(val, is_valid, fixCB) {
+                        var fixed_val = val;
+
+                        if (typeof fixCB === 'function' && !is_valid) {
+                            fixed_val = fixCB(val);
+                        }
+
+                        return {
+                            is_valid: is_valid,
+                            fixed_val: fixed_val
+                        };
+                    },
                     validation = {
-                        numberIsValid: function(val, name) {
+                        numberValidation: function(val, name) {
                             val = parseFloat(val);
 
+                            var is_valid = true;
+
                             if (_s.limits.hasOwnProperty(name)) {
-                                return typeof val === 'number' && _s.limits[name].min <= val && val <= _s.limits[name].max;
+                                is_valid = !isNaN(val) && _s.limits[name].min <= val && val <= _s.limits[name].max;
                             } else {
                                 logger('validateSettings/checkNumberValue - limits for number setting "' + name + '" are missing!', 'warn');
-
-                                return true;
                             }
-                        },
-                        hexIsValid: function(val) {
-                            return /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase());
-                        },
-                        booleanIsValid: function(val) {
-                            return typeof val === 'boolean';
-                        },
-                        objectIsValid: function(val) {
-                            return typeof val === 'object';
-                        },
-                        functionIsValid: function(val) {
-                            return typeof val === 'function';
-                        }
-                    },
-                    checkProp = function(prop, settings) {
-                        if (settings.hasOwnProperty(prop)) {
-                            var type = false,
-                                msg = '';
 
-                            $.each(val_types, function(index, val_type) {
-                                if (val_type.items.indexOf(prop) !== -1) {
-                                    type = val_type.type;
-                                    msg = val_type.msg;
-
-                                    if (type === 'number') {
-                                        msg += ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
-                                    }
-
-                                    return false;
+                            return fixVal(val, is_valid, function(v) {
+                                if (isNaN(v)) {
+                                    v = _s.limits[name].min;
+                                } else {
+                                    v = Math.min(Math.max(v, _s.limits[name].min), _s.limits[name].max);
                                 }
-                            });
 
-                            if (type) {
-                                check.push({
-                                    prop: prop,
-                                    valid: validation[type + 'IsValid'](settings[prop], prop),
-                                    msg: msg,
-                                    value: settings[prop]
-                                });
-                            } else {
-                                logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
-                            }
+                                return v;
+                            });
+                        },
+                        hexValidation: function(val) {
+                            return fixVal(val, /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase()), function(v) {
+                                return prepareHex(v);
+                            });
+                        },
+                        booleanValidation: function(val) {
+                            return fixVal(val, typeof val === 'boolean', function(v) {
+                                return !!v;
+                            });
+                        },
+                        objectValidation: function(val) {
+                            return fixVal(val, typeof val === 'object', function(v) {
+                                return {};
+                            });
+                        },
+                        functionValidation: function(val) {
+                            return fixVal(val, typeof val === 'function', function(v) {
+                                return function() {};
+                            });
                         }
                     },
-                    isNotValid = function(c) { return !c.valid; },
-                    check = [];
+                    checkProps = function(settings) {
+                        var check = [], check_prop;
 
-                for (var prop in settings) {
-                    if (settings.hasOwnProperty(prop)) {
-                        checkProp(prop, settings);
-                    }
-                }
+                        for (var prop in settings) {
+                            if (settings.hasOwnProperty(prop)) {
+                                check_prop = checkProp(settings[prop], prop);
 
-                return check.filter(isNotValid);
+                                if (check_prop !== false) {
+                                    check.push(check_prop);
+                                }
+                            }
+                        }
+
+                        return check;
+                    },
+                    checkProp = function(val, prop) {
+                        var type = false,
+                            msg = '',
+                            validated_item = {};
+
+                        $.each(val_types, function(index, val_type) {
+                            if (val_type.items.indexOf(prop) !== -1) {
+                                type = val_type.type;
+                                msg = val_type.msg;
+
+                                if (type === 'number') {
+                                    msg += ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
+                                }
+
+                                return false;
+                            }
+                        });
+
+                        validated_item = validation[type + 'Validation'](val, prop);
+
+                        if (type) {
+                            return {
+                                prop: prop,
+                                val: val,
+                                fixed_val: validated_item.fixed_val,
+                                valid: validated_item.is_valid,
+                                msg: msg
+                            };
+                        }
+
+                        logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
+
+                        return false;
+                    },
+                    isNotValid = function(c) { return !c.valid; };
+
+                var invalid = checkProps(settings).filter(isNotValid);
+
+                $.each(invalid, function(index, item) {
+                    fixed_settings[item.prop] = item.fixed_val;
+                });
+
+                return {
+                    invalid: invalid,
+                    fixed_settings: fixed_settings
+                };
             }
 
-            return [];
+            return {
+                invalid: [],
+                fixed_settings: settings
+            };
         },
         setAttributes = function ($elem, attrs) {
             for (var a in attrs) {
@@ -279,7 +334,15 @@
                 hex = String(hex).replace(/[^0-9a-f]/gi, '').toLowerCase();
 
                 if (hex.length < 6) {
-                    hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                    if (hex.length >= 3) {
+                        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                    } else {
+                        hex = _s.color.black;
+                    }
+                }
+
+                if (hex.length > 6) {
+                    hex = hex.slice(0, 6);
                 }
 
                 return hex;
@@ -718,9 +781,13 @@
         };
 
     $.fn.chameleon = function (action, options) {
-        var $elements = $(this);
+        var $elements = $(this),
+            action_passed = typeof action === 'string',
+            validation = validateSettings(action_passed ? options : action);
 
-        if (typeof action === 'string') {
+        options = validation.fixed_settings;
+
+        if (action_passed) {
             if (actions.hasOwnProperty(action)) {
                 if (actions[action].result && typeof actions[action].result === 'function') {
                     return actions[action].result(options);
@@ -731,7 +798,7 @@
                 logger(['Unknown action!', action], 'error');
             }
         } else {
-            actions.colorizeContent($elements, action);
+            actions.colorizeContent($elements, options);
         }
 
         return this;
