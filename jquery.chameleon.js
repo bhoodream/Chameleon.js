@@ -56,7 +56,9 @@
             tpl: {}
         },
         _d = {},
-        _f = {};
+        _f = {
+            debug: false
+        };
 
     var clearSel = function(sel) {
             return sel.slice(1);
@@ -64,28 +66,33 @@
         isUndefined = function(val) {
             return typeof val === 'undefined';
         },
+        toggleDebug = function(options) {
+            _f.debug = options ? !!options.debug : false;
+        },
         logger = function(msg, type) {
-            type = type || 'log';
+            if (_f.debug) {
+                type = type || 'log';
 
-            var logAction = {
-                'error': function(m) {
-                    console.error('Chameleon.js:', m);
-                },
-                'warn': function(m) {
-                    console.warn('Chameleon.js:', m);
-                },
-                'log': function(m) {
-                    console.log('Chameleon.js:', m);
-                }
-            };
+                var logAction = {
+                    'error': function(m) {
+                        console.error('Chameleon.js:', m);
+                    },
+                    'warn': function(m) {
+                        console.warn('Chameleon.js:', m);
+                    },
+                    'log': function(m) {
+                        console.log('Chameleon.js:', m);
+                    }
+                };
 
-            if (isUndefined(msg)) {
-                logAction.error('Msg given to logger is undefined!');
-            } else {
-                if (logAction.hasOwnProperty(type)) {
-                    logAction[type](msg);
+                if (isUndefined(msg)) {
+                    logAction.error('Msg given to logger is undefined!');
                 } else {
-                    logAction.error(['Unknown logAction type!', type]);
+                    if (logAction.hasOwnProperty(type)) {
+                        logAction[type](msg);
+                    } else {
+                        logAction.error(['Unknown logAction type!', type]);
+                    }
                 }
             }
         },
@@ -157,6 +164,8 @@
         },
         validateSettings = function(settings) {
             if (typeof settings === 'object') {
+                toggleDebug(settings);
+                
                 var fixed_settings = $.extend({}, settings),
                     val_types = [
                         {
@@ -177,7 +186,7 @@
                         {
                             type: 'boolean',
                             msg: 'Should be a boolean value: true or false.',
-                            items: ['async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
+                            items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
                         },
                         {
                             type: 'object',
