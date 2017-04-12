@@ -65,6 +65,8 @@
             return typeof val === 'undefined';
         },
         logger = function(msg, type) {
+            type = type || 'log';
+
             var logAction = {
                 'error': function(m) {
                     console.error('Chameleon.js:', m);
@@ -106,25 +108,49 @@
                 logger('getStopColorize $elem not given or all $elems are already colorized!', 'warn');
             }
         },
-        getDefaultSettings = function() {
-            return {
-                dummy_back: 'ededef',
-                dummy_front: '4f5155',
-                color_alpha: _s.color.alpha,
-                color_distinction: _s.color.distinction,
-                color_adapt_limit: _s.color.adapt_limit,
-                async_colorize: true,
-                apply_colors: true,
-                adapt_colors: true,
-                all_colors: false,
-                insert_colors: false,
-                data_colors: false,
-                $img: null,
-                rules: {},
-                after_parsed: function() {},
-                before_async_colorized: function() {},
-                after_async_colorized: function() {}
+        getDefaultSettings = function(options) {
+            options = options || {};
+
+            var type = options.settings_type || 'colorizeContent',
+                settings = {
+                'colorizeContent': {
+                    dummy_back: 'ededef',
+                    dummy_front: '4f5155',
+                    color_alpha: _s.color.alpha,
+                    color_distinction: _s.color.distinction,
+                    color_adapt_limit: _s.color.adapt_limit,
+                    async_colorize: true,
+                    apply_colors: true,
+                    adapt_colors: true,
+                    all_colors: false,
+                    insert_colors: false,
+                    data_colors: false,
+                    $img: null,
+                    rules: {},
+                    after_parsed: function() {},
+                    before_async_colorized: function() {},
+                    after_async_colorized: function() {}
+                },
+                'getImageColors': {
+                    color_alpha: _s.color.alpha,
+                    color_distinction: _s.color.distinction,
+                    $img: null,
+                    onSuccess: function(colors, $container, settings) {
+                        logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
+                    },
+                    onError: function(img_src, $container, settings) {
+                        logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
+                    }
+                }
             };
+
+            if (settings[type]) {
+                return $.extend(settings[type], options.settings_values || {});
+            }
+
+            logger('getDefaultSettings - Unknown settings type given "' + type + '"!', 'warn');
+
+            return {};
         },
         extendSettings = function(settings, options) {
             return $.extend(settings || {}, options || {});
@@ -139,6 +165,11 @@
                             items: ['color_alpha', 'color_distinction', 'color_adapt_limit']
                         },
                         {
+                            type: 'string',
+                            msg: 'Should be a string.',
+                            items: ['settings_type']
+                        },
+                        {
                             type: 'hex',
                             msg: 'Should be a hex color: #xxx or #xxxxxx.',
                             items: ['dummy_back', 'dummy_front']
@@ -151,12 +182,12 @@
                         {
                             type: 'object',
                             msg: 'Should be an object.',
-                            items: ['$img', 'rules']
+                            items: ['$img', 'rules', 'settings_values']
                         },
                         {
                             type: 'function',
                             msg: 'Should be a function.',
-                            items: ['after_parsed', 'before_async_colorized', 'after_async_colorized']
+                            items: ['after_parsed', 'before_async_colorized', 'after_async_colorized', 'onSuccess', 'onError']
                         }
                     ],
                     fixVal = function(val, is_valid, fixCB) {
@@ -193,6 +224,11 @@
                                 return v;
                             });
                         },
+                        stringValidation: function(val) {
+                            return fixVal(val, typeof val === 'string', function(v) {
+                                return String(v);
+                            });
+                        },
                         hexValidation: function(val) {
                             return fixVal(val, /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase()), function(v) {
                                 return prepareHex(v);
@@ -219,11 +255,7 @@
 
                         for (var prop in settings) {
                             if (settings.hasOwnProperty(prop)) {
-                                check_prop = checkProp(settings[prop], prop);
-
-                                if (check_prop !== false) {
-                                    check.push(check_prop);
-                                }
+                                check.push(checkProp(settings[prop], prop));
                             }
                         }
 
@@ -231,8 +263,7 @@
                     },
                     checkProp = function(val, prop) {
                         var type = false,
-                            msg = '',
-                            validated_item = {};
+                            msg = '';
 
                         $.each(val_types, function(index, val_type) {
                             if (val_type.items.indexOf(prop) !== -1) {
@@ -247,9 +278,9 @@
                             }
                         });
 
-                        validated_item = validation[type + 'Validation'](val, prop);
-
                         if (type) {
+                            var validated_item = validation[type + 'Validation'](val, prop);
+
                             return {
                                 prop: prop,
                                 val: val,
@@ -261,7 +292,13 @@
 
                         logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
 
-                        return false;
+                        return {
+                            prop: prop,
+                            val: val,
+                            fixed_val: val,
+                            valid: false,
+                            msg: 'Unknown value type.'
+                        };
                     },
                     isNotValid = function(c) { return !c.valid; };
 
@@ -740,17 +777,12 @@
             getImageColors: function($elements, options) {
                 var handleElement = function() {
                     var $img = $(this),
-                        settings = extendSettings({
-                            $img: $img,
-                            color_alpha: _s.color.alpha,
-                            color_distinction: _s.color.distinction
-                        }, options),
-                        onImgLoad = settings.onSuccess || function(colors, $container, settings) {
-                            logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
-                        },
-                        onImgError = settings.onError || function(img_src, $container, settings) {
-                            logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
-                        };
+                        settings = extendSettings(getDefaultSettings({
+                            settings_type: 'getImageColors',
+                            settings_values: {$img: $img}
+                        }), options),
+                        onImgLoad = settings.onSuccess,
+                        onImgError = settings.onError;
 
                     if ($img[0].nodeName.toLowerCase() === 'img') {
                         parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
@@ -761,7 +793,7 @@
 
                 $elements.each(handleElement);
             },
-            stopColorize: function($elements, options) {
+            stopColorize: function($elements) {
                 var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln_colorize_done + ')');
 
                 if ($not_done_elements.length) {
@@ -774,8 +806,8 @@
                 }
             },
             getDefaultSettings: {
-                result: function() {
-                    return getDefaultSettings();
+                result: function(options) {
+                    return getDefaultSettings(options);
                 }
             }
         };
@@ -786,6 +818,10 @@
             validation = validateSettings(action_passed ? options : action);
 
         options = validation.fixed_settings;
+
+        if (validation.invalid.length) {
+            logger(['Some bad options passed!', validation.invalid], 'warn');
+        }
 
         if (action_passed) {
             if (actions.hasOwnProperty(action)) {
