@@ -126,6 +126,7 @@
                     color_alpha: _s.color.alpha,
                     color_distinction: _s.color.distinction,
                     color_adapt_limit: _s.color.adapt_limit,
+                    debug: false,
                     async_colorize: true,
                     apply_colors: true,
                     adapt_colors: true,
@@ -141,6 +142,7 @@
                 'getImageColors': {
                     color_alpha: _s.color.alpha,
                     color_distinction: _s.color.distinction,
+                    debug: false,
                     $img: null,
                     onSuccess: function(colors, $container, settings) {
                         logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
@@ -165,7 +167,7 @@
         validateSettings = function(settings) {
             if (typeof settings === 'object') {
                 toggleDebug(settings);
-                
+
                 var fixed_settings = $.extend({}, settings),
                     val_types = [
                         {
@@ -328,7 +330,7 @@
                 fixed_settings: settings
             };
         },
-        setAttributes = function ($elem, attrs) {
+        setElemAttributes = function ($elem, attrs) {
             for (var a in attrs) {
                 if (attrs.hasOwnProperty(a)) {
                     $elem.attr(a, attrs[a]);
@@ -369,11 +371,11 @@
             return hex;
         },
         addHashToHex = function(hex) {
-            if (typeof hex === 'string') {
-                return '#' + hex.replace(/#/g, '');
-            } else {
-                logger('addHashToHex - given hex is not a string!', 'warn');
+            if (hex) {
+                return '#' + String(hex).replace(/#/g, '');
             }
+
+            return '';
         },
         prepareHex = function(hex) {
             if (hex) {
@@ -392,10 +394,9 @@
                 }
 
                 return hex;
-            } else {
-                logger('No hex given!', 'warn');
-                return '';
             }
+
+            return '';
         },
         hexToRGB = function (hex) {
             hex = prepareHex(hex);
@@ -469,7 +470,7 @@
 
             return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
-        getReadableColor = function(hex) {
+        getWhiteOrBlack = function(hex) {
             return lumDiff(hexToRGB(hex), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
         },
         makeColorReadable = function (back_hex, limit, front_hex) {
@@ -490,50 +491,30 @@
 
             return new_hex;
         },
-        addAttrsToColorSpan = function ($elem, hex, class_name) {
-            if (!($elem instanceof jQuery)) {
-                $elem = $($elem);
-            }
-
+        getColorElem = function (hex, source_hex) {
             hex = addHashToHex(prepareHex(hex));
+            source_hex = addHashToHex(prepareHex(source_hex));
 
-            $elem
-                .attr('title', '[Click] Go to ColorHexa (' + hex + ')')
-                .addClass(class_name + ' used_color label')
-                .css({ 'background-color': hex, 'color': getReadableColor(hex) })
-                .html(hex)
-                .on('click', function (e) {
-                    window.open('http://www.colorhexa.com/' + prepareHex(hex), '_blank');
+            var $container = $('<div class="chmln__colors-elem-wrapper">'),
+                $hex_elem = $('<span class="chmln__colors-elem">'),
+                $source_hex_elem = $('<span class="chmln__colors-elem _source">'),
+                $adapt_arrow = $('<span class="chmln__colors-arrow">'),
+                is_hex_adapted = source_hex && source_hex !== hex,
+                colorElem = function ($elem, color, html) {
+                    $elem.css({'background-color': color, 'color': getWhiteOrBlack(color)}).html(html);
+                };
 
-                    return false;
-                });
-        },
-        buildSpanColor = function (adapt_hex, source_hex) {
-            var $source_color_span = $('<span>'),
-                $adapt_color_span = $('<span>'),
-                $adapt_legend = $('<span>'),
-                $container = $('<div>'),
-                is_different = source_hex ? prepareHex(adapt_hex) !== prepareHex(source_hex) : false;
+            colorElem($hex_elem, hex, hex);
 
-            addAttrsToColorSpan($adapt_color_span, adapt_hex, '');
-
-            if (source_hex && is_different) {
-                var action = hexToRGB(source_hex).lum() - hexToRGB(adapt_hex).lum() > 0 ? ' darken' : ' lighten';
-
-                addAttrsToColorSpan($source_color_span, source_hex, 'source_hex');
-
-                $adapt_legend
-                    .attr('title', 'Color #' + source_hex + action + ' to ' + adapt_hex + ' for readability.')
-                    .addClass('adapt_legend')
-                    .css('color', getReadableColor(source_hex))
-                    .html('&nbsp;&#8594;&nbsp;');
-
-                $adapt_color_span.addClass('adapt_hex');
-                $source_color_span.append($adapt_legend);
-                $container.append($source_color_span);
+            if (is_hex_adapted) {
+                colorElem($source_hex_elem, source_hex, source_hex);
+                colorElem($adapt_arrow, source_hex, '&#8594');
+                $hex_elem.addClass('_adapted');
+                $source_hex_elem.append($adapt_arrow);
+                $container.append($source_hex_elem);
             }
 
-            $container.append($adapt_color_span);
+            $container.append($hex_elem);
 
             return $container;
         },
@@ -605,12 +586,12 @@
 
                     $.each(img_colors, function (index, item) {
                         if (index === 0) {
-                            $colors_container.append(buildSpanColor(background));
+                            $colors_container.append(getColorElem(background));
                         } else {
                             if (item_colors[index]) {
-                                $colors_container.append(buildSpanColor(item_colors[index], item));
+                                $colors_container.append(getColorElem(item_colors[index], item));
                             } else if (settings.all_colors) {
-                                $colors_container.append(buildSpanColor(item));
+                                $colors_container.append(getColorElem(item));
                             }
                         }
                     });
@@ -623,7 +604,7 @@
                 }
 
                 if (settings.data_colors) {
-                    setAttributes($elem, {'data-colors': item_colors});
+                    setElemAttributes($elem, {'data-colors': item_colors});
                 }
 
                 $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
@@ -637,7 +618,7 @@
             $img.on({
                 'load': function (e) {
                     var target_img = e.target,
-                        $canvas = setAttributes($('<canvas>'), {
+                        $canvas = setElemAttributes($('<canvas>'), {
                             'class': clearSel(_s.sel.chmln_canvas),
                             'style': 'display: none;',
                             'width': target_img.width,
@@ -789,14 +770,12 @@
                         settings = extendSettings(getDefaultSettings({
                             settings_type: 'getImageColors',
                             settings_values: {$img: $img}
-                        }), options),
-                        onImgLoad = settings.onSuccess,
-                        onImgError = settings.onError;
+                        }), options);
 
                     if ($img[0].nodeName.toLowerCase() === 'img') {
-                        parseImageColors($img.parent(), $img.attr('src'), settings, onImgLoad, onImgError);
+                        parseImageColors($img.parent(), $img.attr('src'), settings, settings.onSuccess, settings.onError);
                     } else {
-                        logger('Given element is not <img>!', 'error');
+                        logger('Given element is not "img"!', 'error');
                     }
                 };
 
