@@ -140,7 +140,7 @@
                         after_async_colorized: function() {}
                     },
                     'getImageColors': {
-                        sort: 'primary',
+                        sort_colors: 'primary',
                         color_alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction,
                         debug: false,
@@ -171,37 +171,49 @@
 
                 var fixed_settings = $.extend({}, settings),
                     allowed_values = {
-                        'sort': ['primary', 'hue']
+                        'sort_colors': ['primary', 'hue']
                     },
                     val_types = [
                         {
                             type: 'number',
-                            msg: 'Should be a number.',
+                            msg: function(prop) {
+                                return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
+                            },
                             items: ['color_alpha', 'color_distinction', 'color_adapt_limit']
                         },
                         {
                             type: 'string',
-                            msg: 'Should be a string.',
-                            items: ['settings_type', 'sort']
+                            msg: function() {
+                                return 'Should be a string.';
+                            },
+                            items: ['settings_type', 'sort_colors']
                         },
                         {
                             type: 'hex',
-                            msg: 'Should be a hex color: #xxx or #xxxxxx.',
+                            msg: function() {
+                                return 'Should be a hex color: #xxx or #xxxxxx.';
+                            },
                             items: ['dummy_back', 'dummy_front', 'hex', 'color']
                         },
                         {
                             type: 'boolean',
-                            msg: 'Should be a boolean value: true or false.',
+                            msg: function() {
+                                return 'Should be a boolean value: true or false.';
+                            },
                             items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
                         },
                         {
                             type: 'object',
-                            msg: 'Should be an object.',
+                            msg: function() {
+                                return 'Should be an object.';
+                            },
                             items: ['$img', 'rules', 'settings_values']
                         },
                         {
                             type: 'function',
-                            msg: 'Should be a function.',
+                            msg: function() {
+                                return 'Should be a function.';
+                            },
                             items: ['after_parsed', 'before_async_colorized', 'after_async_colorized', 'onSuccess', 'onError']
                         }
                     ],
@@ -283,11 +295,7 @@
                         $.each(val_types, function(index, val_type) {
                             if (val_type.items.indexOf(prop) !== -1) {
                                 type = val_type.type;
-                                msg = val_type.msg;
-
-                                if (type === 'number') {
-                                    msg += ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
-                                }
+                                msg = val_type.msg(prop);
 
                                 return false;
                             }
@@ -299,7 +307,7 @@
                             if (allowed_values.hasOwnProperty(prop) && allowed_values[prop].indexOf(val) === -1) {
                                 validated_item.fixed_val = allowed_values[prop][0];
                                 validated_item.is_valid = false;
-                                msg = 'Not allowed value for "' + prop + '". You can use only this: [' + allowed_values[prop].join(', ') + '].';
+                                msg = 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].';
                             }
 
                             return {
@@ -739,8 +747,8 @@
                         }
                     }
 
-                    if (settings.sort) {
-                        img_colors = sortImageColors({type: settings.sort, colors: img_colors});
+                    if (settings.sort_colors) {
+                        img_colors = sortImageColors({type: settings.sort_colors, colors: img_colors});
                     }
 
                     onImgLoad(img_colors, $container, settings);
