@@ -120,38 +120,39 @@
 
             var type = options.settings_type || 'colorizeContent',
                 settings = {
-                'colorizeContent': {
-                    dummy_back: 'ededef',
-                    dummy_front: '4f5155',
-                    color_alpha: _s.color.alpha,
-                    color_distinction: _s.color.distinction,
-                    color_adapt_limit: _s.color.adapt_limit,
-                    debug: false,
-                    async_colorize: true,
-                    apply_colors: true,
-                    adapt_colors: true,
-                    all_colors: false,
-                    insert_colors: false,
-                    data_colors: false,
-                    $img: null,
-                    rules: {},
-                    after_parsed: function() {},
-                    before_async_colorized: function() {},
-                    after_async_colorized: function() {}
-                },
-                'getImageColors': {
-                    color_alpha: _s.color.alpha,
-                    color_distinction: _s.color.distinction,
-                    debug: false,
-                    $img: null,
-                    onSuccess: function(colors, $container, settings) {
-                        logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
+                    'colorizeContent': {
+                        dummy_back: 'ededef',
+                        dummy_front: '4f5155',
+                        color_alpha: _s.color.alpha,
+                        color_distinction: _s.color.distinction,
+                        color_adapt_limit: _s.color.adapt_limit,
+                        debug: false,
+                        async_colorize: true,
+                        apply_colors: true,
+                        adapt_colors: true,
+                        all_colors: false,
+                        insert_colors: false,
+                        data_colors: false,
+                        $img: null,
+                        rules: {},
+                        after_parsed: function() {},
+                        before_async_colorized: function() {},
+                        after_async_colorized: function() {}
                     },
-                    onError: function(img_src, $container, settings) {
-                        logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
+                    'getImageColors': {
+                        sort: 'primary',
+                        color_alpha: _s.color.alpha,
+                        color_distinction: _s.color.distinction,
+                        debug: false,
+                        $img: null,
+                        onSuccess: function(colors, $container, settings) {
+                            logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
+                        },
+                        onError: function(img_src, $container, settings) {
+                            logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
+                        }
                     }
-                }
-            };
+                };
 
             if (settings[type]) {
                 return $.extend(settings[type], options.settings_values || {});
@@ -169,6 +170,9 @@
                 toggleDebug(settings);
 
                 var fixed_settings = $.extend({}, settings),
+                    allowed_values = {
+                        'sort': ['primary', 'hue']
+                    },
                     val_types = [
                         {
                             type: 'number',
@@ -178,12 +182,12 @@
                         {
                             type: 'string',
                             msg: 'Should be a string.',
-                            items: ['settings_type']
+                            items: ['settings_type', 'sort']
                         },
                         {
                             type: 'hex',
                             msg: 'Should be a hex color: #xxx or #xxxxxx.',
-                            items: ['dummy_back', 'dummy_front']
+                            items: ['dummy_back', 'dummy_front', 'hex', 'color']
                         },
                         {
                             type: 'boolean',
@@ -292,6 +296,12 @@
                         if (type) {
                             var validated_item = validation[type + 'Validation'](val, prop);
 
+                            if (allowed_values.hasOwnProperty(prop) && allowed_values[prop].indexOf(val) === -1) {
+                                validated_item.fixed_val = allowed_values[prop][0];
+                                validated_item.is_valid = false;
+                                msg = 'Not allowed value for "' + prop + '". You can use only this: [' + allowed_values[prop].join(', ') + '].';
+                            }
+
                             return {
                                 prop: prop,
                                 val: val,
@@ -308,7 +318,7 @@
                             val: val,
                             fixed_val: val,
                             valid: false,
-                            msg: 'Unknown value type.'
+                            msg: 'Unknown value type "' + prop + '".'
                         };
                     },
                     isNotValid = function(c) { return !c.valid; };
@@ -398,18 +408,39 @@
 
             return '';
         },
-        hexToRGB = function (hex) {
+        colorObjectFromHex = function(hex) {
             hex = prepareHex(hex);
 
-            return {
-                r: parseInt(hex.substr(0, 2), 16),
-                g: parseInt(hex.substr(2, 2), 16),
-                b: parseInt(hex.substr(4, 2), 16),
+            var r = parseInt(hex.substr(0, 2), 16),
+                g = parseInt(hex.substr(2, 2), 16),
+                b = parseInt(hex.substr(4, 2), 16),
+                max = Math.max(r, g, b),
+                min = Math.min(r, g, b),
+                val = max,
+                chr = max - min,
+                hue = 0,
+                sat = 0;
 
-                lum: function () {
-                    return this.r + this.g + this.b;
+
+            if (val > 0) {
+                sat = chr / val;
+
+                if (sat > 0) {
+                    if (r == max) {
+                        hue = 60 * (((g - min) - (b - min)) / chr);
+
+                        if (hue < 0) {
+                            hue += 360;
+                        }
+                    } else if (g == max) {
+                        hue = 120 + 60 * (((b - min) - (r - min)) / chr);
+                    } else if (b == max) {
+                        hue = 240 + 60 * (((r - min) - (g - min)) / chr);
+                    }
                 }
-            };
+            }
+
+            return {hex: hex, r: r, g: g, b: b, chroma: chr, hue: hue, sat: sat, val: val};
         },
         rgbToHex = function(rgb) {
             var hex = '';
@@ -461,7 +492,7 @@
             while (lumDiff(back_rgb, front_rgb) < _s.color.readable_lum_diff) {
                 new_hex = changeColorLum(front_hex, lum_dir * lum * lum_step);
                 lum_step += 1;
-                front_rgb = hexToRGB(new_hex);
+                front_rgb = colorObjectFromHex(new_hex);
 
                 if (lum_step > limit) {
                     break;
@@ -471,18 +502,18 @@
             return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
         getWhiteOrBlack = function(hex) {
-            return lumDiff(hexToRGB(hex), hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
+            return lumDiff(colorObjectFromHex(hex), colorObjectFromHex(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
         },
         makeColorReadable = function (back_hex, limit, front_hex) {
-            var back_rgb = hexToRGB(back_hex),
-                front_rgb = hexToRGB(front_hex),
+            var back_rgb = colorObjectFromHex(back_hex),
+                front_rgb = colorObjectFromHex(front_hex),
                 new_hex = '',
                 lum_dir = 1;
 
             if (lumDiff(back_rgb, front_rgb) >= _s.color.readable_lum_diff) {
                 new_hex = addHashToHex(front_hex);
             } else {
-                if (lumDiff(back_rgb, hexToRGB(_s.color.black)) >= _s.color.readable_lum_diff) {
+                if (lumDiff(back_rgb, colorObjectFromHex(_s.color.black)) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
                 }
 
@@ -491,32 +522,35 @@
 
             return new_hex;
         },
-        getColorElem = function (hex, source_hex) {
-            hex = addHashToHex(prepareHex(hex));
-            source_hex = addHashToHex(prepareHex(source_hex));
+        getColorElem = function (options) {
+            if (options) {
+                var hex = addHashToHex(prepareHex(options.color || '')),
+                    source_hex = addHashToHex(prepareHex(options.source_color || ''));
 
-            var $container = $('<div class="chmln__colors-elem-wrapper">'),
-                $hex_elem = $('<span class="chmln__colors-elem">'),
-                $source_hex_elem = $('<span class="chmln__colors-elem _source">'),
-                $adapt_arrow = $('<span class="chmln__colors-arrow">'),
-                is_hex_adapted = source_hex && source_hex !== hex,
-                colorElem = function ($elem, color, html) {
-                    $elem.css({'background-color': color, 'color': getWhiteOrBlack(color)}).html(html);
-                };
+                var $container = $('<div class="chmln__colors-elem-wrapper">'),
+                    $hex_elem = $('<span class="chmln__colors-elem">'),
+                    $source_hex_elem = $('<span class="chmln__colors-elem _source">'),
+                    $adapt_arrow = $('<span class="chmln__colors-arrow">'),
+                    is_hex_adapted = source_hex && source_hex !== hex,
+                    colorElem = function ($elem, color, html) {
+                        $elem.css({'background-color': color, 'color': getWhiteOrBlack(color)}).html(html);
+                    };
 
-            colorElem($hex_elem, hex, hex);
+                colorElem($hex_elem, hex, hex);
 
-            if (is_hex_adapted) {
-                colorElem($source_hex_elem, source_hex, source_hex);
-                colorElem($adapt_arrow, source_hex, '&#8594');
-                $hex_elem.addClass('_adapted');
-                $source_hex_elem.append($adapt_arrow);
-                $container.append($source_hex_elem);
+                if (is_hex_adapted) {
+                    colorElem($source_hex_elem, source_hex, source_hex);
+                    colorElem($adapt_arrow, source_hex, '&#8594');
+
+                    $hex_elem.addClass('_adapted');
+                    $source_hex_elem.append($adapt_arrow);
+                    $container.append($source_hex_elem);
+                }
+
+                $container.append($hex_elem);
+
+                return $container;
             }
-
-            $container.append($hex_elem);
-
-            return $container;
         },
         colorizeItem = function (item_elem, img_colors, settings) {
             var $elem = item_elem || [],
@@ -586,12 +620,12 @@
 
                     $.each(img_colors, function (index, item) {
                         if (index === 0) {
-                            $colors_container.append(getColorElem(background));
+                            $colors_container.append(getColorElem({color: background}));
                         } else {
                             if (item_colors[index]) {
-                                $colors_container.append(getColorElem(item_colors[index], item));
+                                $colors_container.append(getColorElem({color: item_colors[index], source_color: item}));
                             } else if (settings.all_colors) {
-                                $colors_container.append(getColorElem(item));
+                                $colors_container.append(getColorElem({color: item}));
                             }
                         }
                     });
@@ -611,6 +645,31 @@
             }
 
             return item_colors;
+        },
+        sortImageColors = function(options) {
+            if (options) {
+                options.type = options.type || 'primary';
+
+                var sortColors = {
+                    'primary': function(colors) {
+                        return colors;
+                    },
+                    'hue': function(colors) {
+                        return colors
+                            .map(function(hex) { return $.fn.chameleon('colorObjectFromHex', {hex: hex}); })
+                            .sort(function(a, b) { return a.hue - b.hue; })
+                            .map(function(c) { return addHashToHex(c.hex); })
+                    }
+                };
+
+                if (sortColors.hasOwnProperty(options.type) && options.colors && options.colors.length) {
+                    return sortColors[options.type](options.colors);
+                } else {
+                    logger('sortImageColors - Unknown sort type "' + options.type + '".', 'warn');
+                }
+            }
+
+            return [];
         },
         parseImageColors = function($container, img_src, settings, onImgLoad, onImgError) {
             var $img = $('<img>');
@@ -678,6 +737,10 @@
                                 img_colors.push(rgbToHex(rgba_arr));
                             }
                         }
+                    }
+
+                    if (settings.sort) {
+                        img_colors = sortImageColors({type: settings.sort, colors: img_colors});
                     }
 
                     onImgLoad(img_colors, $container, settings);
@@ -796,6 +859,21 @@
             getDefaultSettings: {
                 result: function(options) {
                     return getDefaultSettings(options);
+                }
+            },
+            getColorElem: {
+                result: function(options) {
+                    return getColorElem(options);
+                }
+            },
+            colorObjectFromHex: {
+                result: function(options) {
+                    return colorObjectFromHex(options.hex);
+                }
+            },
+            sortColors: {
+                result: function(options) {
+                    return sortImageColors(options);
                 }
             }
         };
