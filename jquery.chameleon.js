@@ -704,7 +704,7 @@
                         rgba_key = '';
 
                     for (var i = 0; i < pix.length; i += 4) {
-                        if (pix[i + 3] > settings.color_alpha) {
+                        if (pix[i + 3] >= settings.color_alpha) {
                             rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
 
                             if (img_colors[rgba_key]) {
@@ -733,7 +733,7 @@
                                     color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
                                 }
 
-                                if (color_distinction < settings.color_distinction) {
+                                if (color_distinction <= settings.color_distinction) {
                                     is_valid = false;
 
                                     break;
