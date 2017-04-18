@@ -121,6 +121,7 @@
             var type = options.settings_type || 'colorizeContent',
                 settings = {
                     'colorizeContent': {
+                        settings_type: 'colorizeContent',
                         dummy_back: 'aaaaaa',
                         dummy_front: '555555',
                         color_alpha: _s.color.alpha,
@@ -133,18 +134,17 @@
                         all_colors: false,
                         insert_colors: false,
                         data_colors: false,
-                        $img: null,
                         rules: {},
                         after_parsed: function() {},
                         before_async_colorized: function() {},
                         after_async_colorized: function() {}
                     },
                     'getImageColors': {
+                        settings_type: 'getImageColors',
                         sort_colors: 'primary',
                         color_alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction,
                         debug: false,
-                        $img: null,
                         onSuccess: function(colors, $container, settings) {
                             logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
                         },
