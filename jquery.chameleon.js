@@ -121,8 +121,8 @@
             var type = options.settings_type || 'colorizeContent',
                 settings = {
                     'colorizeContent': {
-                        dummy_back: 'ededef',
-                        dummy_front: '4f5155',
+                        dummy_back: 'aaaaaa',
+                        dummy_front: '555555',
                         color_alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction,
                         color_adapt_limit: _s.color.adapt_limit,
@@ -171,6 +171,7 @@
 
                 var fixed_settings = $.extend({}, settings),
                     allowed_values = {
+                        'settings_type': ['colorizeContent', 'getImageColors'],
                         'sort_colors': ['primary', 'hue']
                     },
                     val_types = [
@@ -685,6 +686,7 @@
             $img.on({
                 'load': function (e) {
                     var target_img = e.target,
+                        $old_canvas = $container.find(_s.sel.chmln_canvas),
                         $canvas = setElemAttributes($('<canvas>'), {
                             'class': clearSel(_s.sel.chmln_canvas),
                             'style': 'display: none;',
@@ -692,6 +694,7 @@
                             'height': target_img.height
                         });
 
+                    $old_canvas.remove();
                     $container.append($canvas);
 
                     var ctx = $canvas[0].getContext("2d"),
@@ -813,7 +816,7 @@
                                     colorize.call($elem);
                                     $elem = getNext();
 
-                                    if ($elem) {
+                                    if ($elem.length) {
                                         setTimeout(asyncColorize.bind(null, $elem), 0);
                                     } else {
                                         if (typeof settings.after_async_colorized === 'function') {
