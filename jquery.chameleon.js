@@ -259,7 +259,7 @@
                         },
                         hexValidation: function(val) {
                             return fixVal(val, /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase()), function(v) {
-                                return prepareHex(v);
+                                return clearHex(v);
                             });
                         },
                         booleanValidation: function(val) {
@@ -378,10 +378,10 @@
 
             return new_arr;
         },
-        decimalToHex = function (dec, pad) {
-            var hex = Number(dec).toString(16);
+        decToHexadec = function (dec, pad) {
+            pad = pad || 2;
 
-            pad = typeof pad == 'undefined' || pad === null ? 2 : pad;
+            var hex = Number(dec).toString(16);
 
             while (hex.length < pad) {
                 hex = '0' + hex;
@@ -396,7 +396,7 @@
 
             return '';
         },
-        prepareHex = function(hex) {
+        clearHex = function(hex) {
             if (hex) {
                 hex = String(hex).replace(/[^0-9a-f]/gi, '').toLowerCase();
 
@@ -418,11 +418,16 @@
             return '';
         },
         colorObjectFromHex = function(hex) {
-            hex = prepareHex(hex);
+            hex = clearHex(hex);
 
-            var r = parseInt(hex.substr(0, 2), 16),
-                g = parseInt(hex.substr(2, 2), 16),
-                b = parseInt(hex.substr(4, 2), 16),
+            var r_index = 0,
+                g_index = 2,
+                b_index = 4,
+                full_index = 6,
+                hue_step = 360,
+                r = parseInt(hex.substr(r_index, 2), 16),
+                g = parseInt(hex.substr(g_index, 2), 16),
+                b = parseInt(hex.substr(b_index, 2), 16),
                 max = Math.max(r, g, b),
                 min = Math.min(r, g, b),
                 val = max,
@@ -435,32 +440,34 @@
                 sat = chr / val;
 
                 if (sat > 0) {
-                    if (r == max) {
-                        hue = 60 * (((g - min) - (b - min)) / chr);
+                    if (r === max) {
+                        hue = (r_index * hue_step) + hue_step * (((g - min) - (b - min)) / chr);
 
                         if (hue < 0) {
-                            hue += 360;
+                            hue += full_index * hue_step;
                         }
-                    } else if (g == max) {
-                        hue = 120 + 60 * (((b - min) - (r - min)) / chr);
-                    } else if (b == max) {
-                        hue = 240 + 60 * (((r - min) - (g - min)) / chr);
+                    } else if (g === max) {
+                        hue = (g_index * hue_step) + hue_step * (((b - min) - (r - min)) / chr);
+                    } else if (b === max) {
+                        hue = (b_index * hue_step) + hue_step * (((r - min) - (g - min)) / chr);
                     }
                 }
             }
 
             return {hex: hex, r: r, g: g, b: b, chroma: chr, hue: hue, sat: sat, val: val};
         },
-        rgbToHex = function(rgb) {
+        rgbToHex = function(color) {
             var hex = '';
 
-            if (Array.isArray(rgb)) {
-                for (var k = 0; k < 3; k += 1) {
-                    hex += decimalToHex(rgb[k], 2);
+            if (Array.isArray(color)) {
+                for (var i = 0; i < 3; i += 1) {
+                    hex += decToHexadec(color[i]);
                 }
+            } else if (typeof color === 'object') {
+                hex += decToHexadec(color.r) + decToHexadec(color.g) + decToHexadec(color.b);
             }
 
-            return hex;
+            return clearHex(hex);
         },
         lumDiff = function (rgb1, rgb2) {
             var getLum = function(c) {
@@ -479,7 +486,7 @@
             return l1 > l2 ? (l1 + g) / (l2 + g) : (l2 + g) / (l1 + g);
         },
         changeColorLum = function (hex, multiplier) {
-            hex = prepareHex(hex);
+            hex = clearHex(hex);
 
             multiplier = multiplier || 0;
 
@@ -533,8 +540,8 @@
         },
         getColorElem = function (options) {
             if (options) {
-                var hex = addHashToHex(prepareHex(options.color || '')),
-                    source_hex = addHashToHex(prepareHex(options.source_color || ''));
+                var hex = addHashToHex(clearHex(options.color || '')),
+                    source_hex = addHashToHex(clearHex(options.source_color || ''));
 
                 var $container = $('<div class="chmln__colors-elem-wrapper">'),
                     $hex_elem = $('<span class="chmln__colors-elem">'),
@@ -567,7 +574,7 @@
 
             if ($elem.length) {
                 var marks = [],
-                    background = img_colors[0] || prepareHex(settings.dummy_back),
+                    background = img_colors[0] || clearHex(settings.dummy_back),
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
@@ -580,7 +587,7 @@
                 }
 
                 while (img_colors.length < mark_amt_affix) {
-                    img_colors.push(prepareHex(settings.dummy_front));
+                    img_colors.push(clearHex(settings.dummy_front));
                 }
 
                 if (settings.adapt_colors) {
@@ -775,12 +782,12 @@
                                 function(img_colors, $container, settings) {
                                     var item_colors = colorizeItem($container, img_colors, settings);
 
-                                    if (typeof item_settings.after_parsed === 'function') {
+                                    if (!settings.async_colorize && typeof item_settings.after_parsed === 'function') {
                                         item_settings.after_parsed(item_colors);
                                     }
                                 },
                                 function(img_src, $container, settings) {
-                                    if (typeof item_settings.after_parsed === 'function') {
+                                    if (!settings.async_colorize && typeof item_settings.after_parsed === 'function') {
                                         item_settings.after_parsed([]);
                                     }
 
@@ -897,7 +904,7 @@
         options = validation.fixed_settings;
 
         if (validation.invalid.length) {
-            logger(['Some bad options passed!', validation.invalid], 'warn');
+            logger(['Bad settings are fixed!', validation.invalid], 'warn');
         }
 
         if (action_passed) {
