@@ -38,8 +38,8 @@
                 }
             },
             canvas: {
-                w: 1000,
-                h: 1000
+                add_w: 10,
+                add_h: 10
             },
             actions: {
 
@@ -135,9 +135,9 @@
                         insert_colors: false,
                         data_colors: false,
                         rules: {},
-                        after_parsed: function() {},
-                        before_async_colorized: function() {},
-                        after_async_colorized: function() {}
+                        afterColorized: function() {},
+                        beforeAsyncColorized: function() {},
+                        afterAsyncColorized: function() {}
                     },
                     'getImageColors': {
                         settings_type: 'getImageColors',
@@ -145,11 +145,11 @@
                         color_alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction,
                         debug: false,
-                        onSuccess: function(colors, $container, settings) {
-                            logger(['getImageColors onSuccess is not given!', colors, $container, settings], 'warn');
+                        onGetColorsSuccess: function(colors, $container, settings) {
+                            logger(['getImageColors - onGetColorsSuccess is not given!', colors, $container, settings], 'warn');
                         },
-                        onError: function(img_src, $container, settings) {
-                            logger(['getImageColors error on img load!', img_src, $container, settings], 'error');
+                        onGetColorsError: function(img_src, $container, settings) {
+                            logger(['getImageColors - error on img load!', img_src, $container, settings], 'error');
                         }
                     }
                 };
@@ -215,7 +215,7 @@
                             msg: function() {
                                 return 'Should be a function.';
                             },
-                            items: ['after_parsed', 'before_async_colorized', 'after_async_colorized', 'onSuccess', 'onError']
+                            items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsFail']
                         }
                     ],
                     fixVal = function(val, is_valid, fixCB) {
@@ -693,12 +693,14 @@
             $img.on({
                 'load': function (e) {
                     var target_img = e.target,
+                        canvas_w = target_img.width + _s.canvas.add_w,
+                        canvas_h = target_img.height + _s.canvas.add_h,
                         $old_canvas = $container.find(_s.sel.chmln_canvas),
                         $canvas = setElemAttributes($('<canvas>'), {
                             'class': clearSel(_s.sel.chmln_canvas),
                             'style': 'display: none;',
-                            'width': target_img.width,
-                            'height': target_img.height
+                            'width': canvas_w,
+                            'height': canvas_h
                         });
 
                     $old_canvas.remove();
@@ -707,10 +709,10 @@
                     var ctx = $canvas[0].getContext("2d"),
                         img_colors = [];
 
-                    ctx.clearRect(0, 0, _s.canvas.w, _s.canvas.h);
+                    ctx.clearRect(0, 0, canvas_w, canvas_h);
                     ctx.drawImage(target_img, 0, 0);
 
-                    var pix = ctx.getImageData(0, 0, target_img.width, target_img.height).data,
+                    var pix = ctx.getImageData(0, 0, canvas_w, canvas_h).data,
                         rgba_key = '';
 
                     for (var i = 0; i < pix.length; i += 4) {
@@ -782,13 +784,13 @@
                                 function(img_colors, $container, settings) {
                                     var item_colors = colorizeItem($container, img_colors, settings);
 
-                                    if (!settings.async_colorize && typeof item_settings.after_parsed === 'function') {
-                                        item_settings.after_parsed(item_colors);
+                                    if (!settings.async_colorize && typeof item_settings.afterColorized === 'function') {
+                                        item_settings.afterColorized(item_colors);
                                     }
                                 },
                                 function(img_src, $container, settings) {
-                                    if (!settings.async_colorize && typeof item_settings.after_parsed === 'function') {
-                                        item_settings.after_parsed([]);
+                                    if (!settings.async_colorize && typeof item_settings.afterColorized === 'function') {
+                                        item_settings.afterColorized([]);
                                     }
 
                                     logger('Failed to load image with url "' + img_src + '".', 'error');
@@ -826,8 +828,8 @@
                                     if ($elem.length) {
                                         setTimeout(asyncColorize.bind(null, $elem), 0);
                                     } else {
-                                        if (typeof settings.after_async_colorized === 'function') {
-                                            settings.after_async_colorized();
+                                        if (typeof settings.afterAsyncColorized === 'function') {
+                                            settings.afterAsyncColorized();
                                         }
                                     }
                                 } else {
@@ -836,8 +838,8 @@
                             }
                         };
 
-                    if (typeof settings.before_async_colorized === 'function') {
-                        settings.before_async_colorized();
+                    if (typeof settings.beforeAsyncColorized === 'function') {
+                        settings.beforeAsyncColorized();
                     }
 
                     asyncColorize(getNext());
@@ -854,7 +856,7 @@
                         }), options);
 
                     if ($img[0].nodeName.toLowerCase() === 'img') {
-                        parseImageColors($img.parent(), $img.attr('src'), settings, settings.onSuccess, settings.onError);
+                        parseImageColors($img.parent(), $img.attr('src'), settings, settings.onGetColorsSuccess, settings.onGetColorsError);
                     } else {
                         logger('Given element is not "img"!', 'error');
                     }
