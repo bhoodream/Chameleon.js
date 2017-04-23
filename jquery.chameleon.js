@@ -21,7 +21,8 @@
                 adapt_limit: 200,
                 alpha: 200,
                 distinction: 120,
-                readable_lum_diff: 5
+                readable_lum_diff: 5,
+                lum_step: 0.05
             },
             limits: {
                 color_alpha: {
@@ -490,7 +491,7 @@
 
             multiplier = multiplier || 0;
 
-            var new_hex = '#', c;
+            var new_hex = '', c;
 
             for (var i = 0; i < 3; i += 1) {
                 c = parseInt(hex.substr(i * 2, 2), 16);
@@ -502,22 +503,22 @@
         },
         findReadableColor = function (back_rgb, front_rgb, front_hex, lum_dir, limit) {
             var new_hex = '',
-                lum = 0.05,
-                lum_step = 1;
+                lum_step = _s.color.lum_step,
+                try_num = 1;
 
             while (lumDiff(back_rgb, front_rgb) < _s.color.readable_lum_diff) {
-                new_hex = changeColorLum(front_hex, lum_dir * lum * lum_step);
-                lum_step += 1;
+                new_hex = changeColorLum(front_hex, lum_dir * lum * try_num);
+                try_num += 1;
                 front_rgb = colorObjectFromHex(new_hex);
 
-                if (lum_step > limit) {
+                if (try_num > limit) {
                     break;
                 }
             }
 
             return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
-        getWhiteOrBlack = function(hex) {
+        whiteOrBlack = function(hex) {
             return lumDiff(colorObjectFromHex(hex), colorObjectFromHex(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
         },
         makeColorReadable = function (back_hex, limit, front_hex) {
@@ -549,7 +550,7 @@
                     $adapt_arrow = $('<span class="chmln__colors-arrow">'),
                     is_hex_adapted = source_hex && source_hex !== hex,
                     colorElem = function ($elem, color, html) {
-                        $elem.css({'background-color': color, 'color': getWhiteOrBlack(color)}).html(html);
+                        $elem.css({'background-color': color, 'color': whiteOrBlack(color)}).html(html);
                     };
 
                 colorElem($hex_elem, hex, hex);
@@ -567,100 +568,6 @@
 
                 return $container;
             }
-        },
-        colorizeItem = function (item_elem, img_colors, settings) {
-            var $elem = item_elem || [],
-                item_colors = [];
-
-            if ($elem.length) {
-                var marks = [],
-                    background = img_colors[0] || clearHex(settings.dummy_back),
-                    mark_amt_affix = 1,
-                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
-
-                item_colors.push(addHashToHex(background));
-
-                while (cur_marks.length > 0) {
-                    marks.push(cur_marks);
-                    mark_amt_affix += 1;
-                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
-                }
-
-                while (img_colors.length < mark_amt_affix) {
-                    img_colors.push(clearHex(settings.dummy_front));
-                }
-
-                if (settings.adapt_colors) {
-                    var adapted_colors =
-                        img_colors
-                            .slice(1, mark_amt_affix)
-                            .map(makeColorReadable.bind(this, background, settings.color_adapt_limit));
-
-                    item_colors = item_colors.concat(adapted_colors);
-                } else {
-                    for (var m = 1; m < mark_amt_affix; m += 1) {
-                        item_colors.push(addHashToHex(img_colors[m]));
-                    }
-                }
-
-                if (settings.apply_colors) {
-                    $elem.css('background-color', addHashToHex(background));
-
-                    for (var i = 0; i < marks.length; i += 1) {
-                        marks[i].css('color', item_colors[i + 1]);
-
-                        for (var l = 0; l < marks[i].length; l += 1) {
-                            var node_name = marks[i][l].nodeName.toLowerCase();
-
-                            if (settings.rules.hasOwnProperty(node_name)) {
-                                var rules = settings.rules[node_name].split(','),
-                                    length = rules.length;
-
-                                for (var k = 0; k < length; k += 1) {
-                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[i + 1];
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if (settings.insert_colors) {
-                    var $colors_container = $elem.find(_s.sel.chmln_colors);
-
-                    if ($colors_container.length) {
-                        $colors_container.html('');
-                    } else {
-                        $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
-                        $elem.append($colors_container);
-                    }
-
-                    $.each(img_colors, function (index, item) {
-                        if (index === 0) {
-                            $colors_container.append(getColorElem({color: background}));
-                        } else {
-                            if (item_colors[index]) {
-                                $colors_container.append(getColorElem({color: item_colors[index], source_color: item}));
-                            } else if (settings.all_colors) {
-                                $colors_container.append(getColorElem({color: item}));
-                            }
-                        }
-                    });
-                }
-
-                if (settings.all_colors) {
-                    var rest_img_colors = img_colors.slice(item_colors.length).map(addHashToHex);
-
-                    item_colors = item_colors.concat(rest_img_colors);
-                }
-
-                if (settings.data_colors) {
-                    setElemAttributes($elem, {'data-colors': item_colors});
-                }
-
-                $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
-            }
-
-            return item_colors;
         },
         sortImageColors = function(options) {
             if (options) {
@@ -772,6 +679,100 @@
 
             $img.attr('src', img_src);
         },
+        colorizeElem = function (item_elem, img_colors, settings) {
+            var $elem = item_elem || [],
+                item_colors = [];
+
+            if ($elem.length) {
+                var marks = [],
+                    background = img_colors[0] || clearHex(settings.dummy_back),
+                    mark_amt_affix = 1,
+                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
+
+                item_colors.push(addHashToHex(background));
+
+                while (cur_marks.length > 0) {
+                    marks.push(cur_marks);
+                    mark_amt_affix += 1;
+                    cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
+                }
+
+                while (img_colors.length < mark_amt_affix) {
+                    img_colors.push(clearHex(settings.dummy_front));
+                }
+
+                if (settings.adapt_colors) {
+                    var adapted_colors =
+                        img_colors
+                            .slice(1, mark_amt_affix)
+                            .map(makeColorReadable.bind(this, background, settings.color_adapt_limit));
+
+                    item_colors = item_colors.concat(adapted_colors);
+                } else {
+                    for (var m = 1; m < mark_amt_affix; m += 1) {
+                        item_colors.push(addHashToHex(img_colors[m]));
+                    }
+                }
+
+                if (settings.apply_colors) {
+                    $elem.css('background-color', addHashToHex(background));
+
+                    for (var i = 0; i < marks.length; i += 1) {
+                        marks[i].css('color', item_colors[i + 1]);
+
+                        for (var l = 0; l < marks[i].length; l += 1) {
+                            var node_name = marks[i][l].nodeName.toLowerCase();
+
+                            if (settings.rules.hasOwnProperty(node_name)) {
+                                var rules = settings.rules[node_name].split(','),
+                                    length = rules.length;
+
+                                for (var k = 0; k < length; k += 1) {
+                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[i + 1];
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (settings.insert_colors) {
+                    var $colors_container = $elem.find(_s.sel.chmln_colors);
+
+                    if ($colors_container.length) {
+                        $colors_container.html('');
+                    } else {
+                        $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
+                        $elem.append($colors_container);
+                    }
+
+                    $.each(img_colors, function (index, item) {
+                        if (index === 0) {
+                            $colors_container.append(getColorElem({color: background}));
+                        } else {
+                            if (item_colors[index]) {
+                                $colors_container.append(getColorElem({color: item_colors[index], source_color: item}));
+                            } else if (settings.all_colors) {
+                                $colors_container.append(getColorElem({color: item}));
+                            }
+                        }
+                    });
+                }
+
+                if (settings.all_colors) {
+                    var rest_img_colors = img_colors.slice(item_colors.length).map(addHashToHex);
+
+                    item_colors = item_colors.concat(rest_img_colors);
+                }
+
+                if (settings.data_colors) {
+                    setElemAttributes($elem, {'data-colors': item_colors});
+                }
+
+                $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
+            }
+
+            return item_colors;
+        },
         actions = {
             colorizeContent: function($elements, options) {
                 var settings = extendSettings(getDefaultSettings(), options),
@@ -782,7 +783,7 @@
                         if (item_settings.$img.length) {
                             parseImageColors($this, item_settings.$img[0].src, settings,
                                 function(img_colors, $container, settings) {
-                                    var item_colors = colorizeItem($container, img_colors, settings);
+                                    var item_colors = colorizeElem($container, img_colors, settings);
 
                                     if (!settings.async_colorize && typeof item_settings.afterColorized === 'function') {
                                         item_settings.afterColorized(item_colors);
@@ -802,7 +803,7 @@
                     };
 
                 if (!$elements.length) {
-                    logger('Nothing found, probably, bad selector.', 'error');
+                    logger('Nothing found, probably, bad selector.', 'warn');
                 }
 
                 $elements
@@ -810,11 +811,11 @@
                     .toggleClass(clearSel(_s.sel.chmln_async_colorize), !!settings.async_colorize);
 
                 if (settings.async_colorize) {
-                    var getNext = function() {
+                    var getNext = function($items) {
                             var next = false;
 
-                            if ($elements.length) {
-                                next = $elements.splice(0, 1)[0];
+                            if ($items.length) {
+                                next = $items.splice(0, 1)[0];
                             }
 
                             return $(next);
@@ -823,7 +824,7 @@
                             if ($elem && $elem.length) {
                                 if (isUndefined(getStopColorize($elem))) {
                                     colorize.call($elem);
-                                    $elem = getNext();
+                                    $elem = getNext($elements);
 
                                     if ($elem.length) {
                                         setTimeout(asyncColorize.bind(null, $elem), 0);
@@ -842,7 +843,7 @@
                         settings.beforeAsyncColorized();
                     }
 
-                    asyncColorize(getNext());
+                    asyncColorize(getNext($elements));
                 } else {
                     $elements.each(colorize);
                 }
