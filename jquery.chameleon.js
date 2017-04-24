@@ -499,7 +499,7 @@
                 new_hex += ('00' + c).substr(c.length);
             }
 
-            return new_hex;
+            return addHashToHex(new_hex);
         },
         findReadableColor = function (back_rgb, front_rgb, front_hex, lum_dir, limit) {
             var new_hex = '',
@@ -507,7 +507,7 @@
                 try_num = 1;
 
             while (lumDiff(back_rgb, front_rgb) < _s.color.readable_lum_diff) {
-                new_hex = changeColorLum(front_hex, lum_dir * lum * try_num);
+                new_hex = changeColorLum(front_hex, lum_dir * lum_step * try_num);
                 try_num += 1;
                 front_rgb = colorObjectFromHex(new_hex);
 
@@ -516,7 +516,7 @@
                 }
             }
 
-            return lum_step > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
+            return try_num > limit ? (lum_dir > 0 ? _s.color.white : _s.color.black) : new_hex;
         },
         whiteOrBlack = function(hex) {
             return lumDiff(colorObjectFromHex(hex), colorObjectFromHex(_s.color.black)) >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
@@ -781,17 +781,17 @@
                             item_settings = extendSettings(settings, { $img: $this.find(_s.sel.chmln_img).first() });
 
                         if (item_settings.$img.length) {
-                            parseImageColors($this, item_settings.$img[0].src, settings,
+                            parseImageColors($this, item_settings.$img[0].src, item_settings,
                                 function(img_colors, $container, settings) {
                                     var item_colors = colorizeElem($container, img_colors, settings);
 
-                                    if (!settings.async_colorize && typeof item_settings.afterColorized === 'function') {
-                                        item_settings.afterColorized(item_colors);
+                                    if (typeof item_settings.afterColorized === 'function') {
+                                        item_settings.afterColorized(item_colors, settings);
                                     }
                                 },
                                 function(img_src, $container, settings) {
-                                    if (!settings.async_colorize && typeof item_settings.afterColorized === 'function') {
-                                        item_settings.afterColorized([]);
+                                    if (typeof item_settings.afterColorized === 'function') {
+                                        item_settings.afterColorized([], settings);
                                     }
 
                                     logger('Failed to load image with url "' + img_src + '".', 'error');
