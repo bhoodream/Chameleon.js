@@ -135,6 +135,7 @@
                         all_colors: false,
                         insert_colors: false,
                         data_colors: false,
+                        object_color: false,
                         rules: {},
                         afterColorized: function() {},
                         beforeAsyncColorized: function() {},
@@ -146,11 +147,12 @@
                         color_alpha: _s.color.alpha,
                         color_distinction: _s.color.distinction,
                         debug: false,
+                        object_color: false,
                         onGetColorsSuccess: function(colors, $container, settings) {
                             logger(['getImageColors - onGetColorsSuccess is not given!', colors, $container, settings], 'warn');
                         },
-                        onGetColorsError: function(img_src, $container, settings) {
-                            logger(['getImageColors - error on img load!', img_src, $container, settings], 'error');
+                        onGetColorsError: function(colors, $container, settings) {
+                            logger(['getImageColors - error on img load!', colors, $container, settings], 'error');
                         }
                     }
                 };
@@ -202,7 +204,7 @@
                             msg: function() {
                                 return 'Should be a boolean value: true or false.';
                             },
-                            items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
+                            items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors', 'object_color']
                         },
                         {
                             type: 'object',
@@ -216,7 +218,7 @@
                             msg: function() {
                                 return 'Should be a function.';
                             },
-                            items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsFail']
+                            items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError']
                         }
                     ],
                     fixVal = function(val, is_valid, fixCB) {
@@ -259,7 +261,37 @@
                             });
                         },
                         hexValidation: function(val) {
-                            return fixVal(val, /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase()), function(v) {
+                            var is_valid = true,
+                                checkColorValue = function(v) {
+                                    v = parseInt(v, 10);
+
+                                    var valid_val = true;
+
+                                    if (isNaN(v)) {
+                                        valid_val = false;
+                                    } else if (v < 0 || v > 255) {
+                                        valid_val = false;
+                                    }
+
+                                    return valid_val;
+                                };
+
+                            if (typeof val === 'string') {
+                                is_valid = /^#[0-9a-f]{6}$/i.test(addHashToHex(val).toLowerCase())
+                            } else if (Array.isArray(val)) {
+                                $.each(val, function(i, v) {
+                                    if (!checkColorValue(v)) {
+                                        is_valid = false;
+                                        return false;
+                                    }
+                                });
+                            } else if (typeof val === 'object') {
+                                if (!checkColorValue(val.r) || !checkColorValue(val.g) || !checkColorValue(val.b) || !checkColorValue(val.alpha)) {
+                                    is_valid = false;
+                                }
+                            }
+
+                            return fixVal(val, is_valid, function(v) {
                                 return clearHex(v);
                             });
                         },
@@ -280,7 +312,7 @@
                         }
                     },
                     checkProps = function(settings) {
-                        var check = [], check_prop;
+                        var check = [];
 
                         for (var prop in settings) {
                             if (settings.hasOwnProperty(prop)) {
@@ -418,8 +450,20 @@
 
             return '';
         },
-        colorObjectFromHex = function(hex) {
+        convertAlphaToPercent = function(a) {
+            a = parseInt(a, 10);
+
+            if (isNaN(a)) {
+                a = 1;
+            } else {
+                a = ((parseInt(a, 10) / (255 / 100)) / 100).toFixed(2);
+            }
+
+            return Math.min(1, a);
+        },
+        colorObjectFromHex = function(hex, alpha) {
             hex = clearHex(hex);
+            alpha = alpha ? convertAlphaToPercent(alpha) : 1;
 
             var r_index = 0,
                 g_index = 2,
@@ -455,7 +499,10 @@
                 }
             }
 
-            return {hex: hex, r: r, g: g, b: b, chroma: chr, hue: hue, sat: sat, val: val};
+            return {hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val};
+        },
+        getRGBAString = function(c) {
+            return c ? 'rgba(' + c.r + ', ' + c.g + ', ' + c.b + ', ' + c.alpha + ')' : '';
         },
         rgbToHex = function(color) {
             var hex = '';
@@ -541,23 +588,32 @@
         },
         getColorElem = function (options) {
             if (options) {
-                var hex = addHashToHex(clearHex(options.color || '')),
-                    source_hex = addHashToHex(clearHex(options.source_color || ''));
+                options.color = options.color || '';
+                options.source_color = options.source_color || '';
+
+                var color = typeof options.color === 'object' ?
+                        getRGBAString(options.color) :
+                        addHashToHex(clearHex(options.color)),
+                    source_color = typeof options.source_color === 'object' ?
+                        getRGBAString(options.source_color) :
+                        addHashToHex(clearHex(options.source_color));
 
                 var $container = $('<div class="chmln__colors-elem-wrapper">'),
                     $hex_elem = $('<span class="chmln__colors-elem">'),
                     $source_hex_elem = $('<span class="chmln__colors-elem _source">'),
                     $adapt_arrow = $('<span class="chmln__colors-arrow">'),
-                    is_hex_adapted = source_hex && source_hex !== hex,
-                    colorElem = function ($elem, color, html) {
-                        $elem.css({'background-color': color, 'color': whiteOrBlack(color)}).html(html);
+                    is_hex_adapted = source_color && source_color !== color,
+                    colorElem = function ($elem, color, html, origin_color) {
+                        var text_color = whiteOrBlack(typeof origin_color === 'object' ? origin_color.hex : origin_color);
+
+                        $elem.css({'background-color': color, 'color': text_color}).html(html);
                     };
 
-                colorElem($hex_elem, hex, hex);
+                colorElem($hex_elem, color, color, options.color);
 
                 if (is_hex_adapted) {
-                    colorElem($source_hex_elem, source_hex, source_hex);
-                    colorElem($adapt_arrow, source_hex, '&#8594');
+                    colorElem($source_hex_elem, source_color, source_color, options.source_color);
+                    colorElem($adapt_arrow, source_color, '&#8594', options.source_color);
 
                     $hex_elem.addClass('_adapted');
                     $source_hex_elem.append($adapt_arrow);
@@ -578,10 +634,7 @@
                         return colors;
                     },
                     'hue': function(colors) {
-                        return colors
-                            .map(function(hex) { return $.fn.chameleon('colorObjectFromHex', {hex: hex}); })
-                            .sort(function(a, b) { return a.hue - b.hue; })
-                            .map(function(c) { return addHashToHex(c.hex); })
+                        return colors.sort(function(a, b) { return a.hue - b.hue; });
                     }
                 };
 
@@ -661,7 +714,7 @@
 
                             if (is_valid) {
                                 used_colors.push(rgba_string);
-                                img_colors.push(rgbToHex(rgba_arr));
+                                img_colors.push(colorObjectFromHex(rgbToHex(rgba_arr), rgba_arr[3]));
                             }
                         }
                     }
@@ -670,10 +723,14 @@
                         img_colors = sortImageColors({type: settings.sort_colors, colors: img_colors});
                     }
 
+                    if (!settings.object_color) {
+                        img_colors = img_colors.map(function(c) { return c.hex; })
+                    }
+
                     onImgLoad(img_colors, $container, settings);
                 },
                 'error': function() {
-                    onImgError(img_src, $container, settings);
+                    onImgError([], $container, settings);
                 }
             });
 
@@ -724,10 +781,9 @@
                             var node_name = marks[i][l].nodeName.toLowerCase();
 
                             if (settings.rules.hasOwnProperty(node_name)) {
-                                var rules = settings.rules[node_name].split(','),
-                                    length = rules.length;
+                                var rules = settings.rules[node_name].split(',');
 
-                                for (var k = 0; k < length; k += 1) {
+                                for (var k = 0; k < rules.length; k += 1) {
                                     marks[i][l].style[rules[k].replace(/\s/g, '')] = item_colors[i + 1];
                                 }
                             }
