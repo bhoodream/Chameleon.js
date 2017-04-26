@@ -738,7 +738,7 @@
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
-                item_colors.push(addHashToHex(background));
+                item_colors.push(background);
 
                 while (cur_marks.length > 0) {
                     marks.push(cur_marks);
@@ -811,7 +811,7 @@
                 }
 
                 if (s.data_colors) {
-                    setElemAttributes($elem, {'data-colors': item_colors});
+                    setElemAttributes($elem, {'data-colors': item_colors.map(function(c) { return c.hex; })});
                 }
 
                 $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
@@ -924,24 +924,16 @@
                 }
             },
             getDefaultSettings: {
-                result: function(o) {
-                    return getDefaultSettings(o);
-                }
+                result: getDefaultSettings
             },
             getColorElem: {
-                result: function(o) {
-                    return getColorElem(o);
-                }
+                result: getColorElem
             },
             colorObjectFromHex: {
-                result: function(o) {
-                    return colorObjectFromHex({hex: o.hex, alpha: o.alpha});
-                }
+                result: colorObjectFromHex
             },
             sortColors: {
-                result: function(o) {
-                    return sortImageColors(o);
-                }
+                result: sortImageColors
             }
         };
 
