@@ -502,8 +502,11 @@
 
             return {hex: s.hex, r: r, g: g, b: b, alpha: s.alpha, chroma: chr, hue: hue, sat: sat, val: val};
         },
+        getRGBString = function(c) {
+            return c ? 'rgb(' + [c.r, c.g, c.b].join(',') + ')' : '';
+        },
         getRGBAString = function(c) {
-            return c ? 'rgba(' + [c.r, c.g, c.b, c.alpha].join(',') + ')' : '';
+            return c ? 'rgba(' + [c.r, c.g, c.b, (typeof c.alpha === 'undefined' ? 1 : c.alpha)].join(',') + ')' : '';
         },
         rgbToHex = function(color) {
             var hex = '';
@@ -587,36 +590,58 @@
 
             return new_color;
         },
+        getColorString = function(s) {
+            var format = {
+                'hex': function(c) {
+                    return addHashToHex(c.hex);
+                },
+                'rgb': function(c) {
+                    return getRGBString(c);
+                },
+                'rgba': function(c) {
+                    return getRGBAString(c);
+                }
+            };
+
+            if (format.hasOwnProperty(s.format)) {
+                return format[s.format](s.color);
+            }
+
+            logger('getColorString - unknown format "' + s.format + '"!', 'warn');
+
+            return '';
+        },
         getColorElem = function (s) {
             if (s) {
                 s.color = s.color || {};
                 s.source_color = s.source_color || {};
 
-                var color = addHashToHex(clearHex(s.color.hex)),
-                    source_color = addHashToHex(clearHex(s.source_color.hex));
-
                 var $container = $('<div class="chmln__colors-elem-wrapper">'),
-                    $hex_elem = $('<span class="chmln__colors-elem">'),
-                    $source_hex_elem = $('<span class="chmln__colors-elem _source">'),
+                    $color_elem = $('<span class="chmln__colors-elem">'),
+                    $source_color_elem = $('<span class="chmln__colors-elem _source">'),
                     $adapt_arrow = $('<span class="chmln__colors-arrow">'),
-                    is_hex_adapted = source_color && source_color !== color,
+                    is_color_adapted = s.source_color.hex && s.source_color.hex !== s.color.hex,
                     colorElem = function (s) {
-                        s.html = s.html || s.color;
-                        s.$elem.css({'background-color': s.color, 'color': whiteOrBlack(s.color)}).html(s.html);
+                        var color = getColorString({color: s.color, format: s.format});
+
+                        if (color) {
+                            s.html = s.html || color;
+                            s.$elem.css({'background-color': color, 'color': whiteOrBlack(s.color)}).html(s.html);
+                        }
                     };
 
-                colorElem({$elem: $hex_elem, color: color});
+                colorElem({$elem: $color_elem, color: s.color, format: s.color_format});
 
-                if (is_hex_adapted) {
-                    colorElem({$elem: $source_hex_elem, color: source_color});
-                    colorElem({$elem: $adapt_arrow, color: source_color, html: '&#8594'});
+                if (is_color_adapted) {
+                    colorElem({$elem: $source_color_elem, color: s.source_color, format: s.color_format});
+                    colorElem({$elem: $adapt_arrow, color: s.source_color, format: s.color_format, html: '&#8594'});
 
-                    $hex_elem.addClass('_adapted');
-                    $source_hex_elem.append($adapt_arrow);
-                    $container.append($source_hex_elem);
+                    $color_elem.addClass('_adapted');
+                    $source_color_elem.append($adapt_arrow);
+                    $container.append($source_color_elem);
                 }
 
-                $container.append($hex_elem);
+                $container.append($color_elem);
 
                 return $container;
             }
