@@ -626,6 +626,15 @@
 
                         if (color) {
                             s.html = s.html || color;
+
+                            if (s.format === 'rgba' && typeof s.color.alpha !== 'undefined' && s.color.alpha < 1) {
+                                s.html =
+                                    '<span class="chmln__colors-elem-text">' + s.html + '</span>' +
+                                    '<div class="chmln__colors-elem-overlay" style="opacity: ' + (1 - s.color.alpha) + ';"></div>';
+                                color = addHashToHex(s.color.hex);
+                                s.color = s.color.alpha > 0.4 ? s.color : _s.color.white;
+                            }
+
                             s.$elem.css({'background-color': color, 'color': whiteOrBlack(s.color)}).html(s.html);
                         }
                     };
