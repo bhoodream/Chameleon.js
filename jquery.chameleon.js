@@ -20,18 +20,20 @@
                 white: '#ffffff',
                 adapt_limit: 200,
                 alpha: 200,
-                distinction: 120,
+                difference: 120,
                 readable_lum_diff: 5,
                 lum_step: 0.05
             },
             limits: {
                 color_alpha: {
                     min: 0,
-                    max: 255
+                    max: 255,
+                    max_val: 255
                 },
-                color_distinction: {
+                color_difference: {
                     min: 50,
-                    max: 765
+                    max: 765,
+                    max_val: 765
                 },
                 color_adapt_limit: {
                     min: 0,
@@ -127,7 +129,7 @@
                         dummy_front: '555555',
                         color_format: 'hex',
                         color_alpha: _s.color.alpha,
-                        color_distinction: _s.color.distinction,
+                        color_difference: _s.color.difference,
                         color_adapt_limit: _s.color.adapt_limit,
                         debug: false,
                         async_colorize: true,
@@ -146,7 +148,7 @@
                         sort_colors: 'primary',
                         color_format: 'hex',
                         color_alpha: _s.color.alpha,
-                        color_distinction: _s.color.distinction,
+                        color_difference: _s.color.difference,
                         debug: false,
                         onGetColorsSuccess: function(colors, $container, s) {
                             logger(['getImageColors - onGetColorsSuccess is not given!', colors, $container, s], 'warn');
@@ -184,7 +186,7 @@
                             msg: function(prop) {
                                 return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
                             },
-                            items: ['color_alpha', 'color_distinction', 'color_adapt_limit']
+                            items: ['color_alpha', 'color_difference', 'color_adapt_limit']
                         },
                         {
                             type: 'string',
@@ -451,20 +453,32 @@
 
             return '';
         },
-        convertAlphaToPercent = function(a) {
-            a = parseInt(a, 10);
+        convertValToPercent = function(s) {
+            var max_percent = 1;
 
-            if (isNaN(a)) {
-                a = 1;
+            s.val = parseFloat(s.val);
+            s.max = typeof s.max === 'undefined' ? _s.limits.color_alpha.max : s.max;
+            s.max_val = typeof s.max_val === 'undefined' ? _s.limits.color_alpha.max_val : s.max_val;
+
+            if (isNaN(s.val)) {
+                s.val = max_percent;
             } else {
-                a = ((parseInt(a, 10) / (255 / 100)) / 100).toFixed(2);
+                if (s.val > max_percent) {
+                    s.val = ((s.val / (s.max_val / 100)) / 100).toFixed(2);
+                }
             }
 
-            return Math.min(1, a);
+            return Math.min(max_percent, s.val);
         },
         colorObjectFromHex = function(s) {
             s.hex = clearHex(s.hex);
-            s.alpha = s.alpha ? convertAlphaToPercent(s.alpha) : 1;
+
+            // optimization: less function calls
+            if (typeof s.alpha !== 'undefined' && s.alpha < _s.limits.color_alpha.max_val) {
+                s.alpha = s.alpha === 0 ? 0 : convertValToPercent({val: s.alpha});
+            } else {
+                s.alpha = 1;
+            }
 
             var r_index = 0,
                 g_index = 2,
@@ -728,14 +742,14 @@
                                 is_valid = true;
 
                             for (var l = 0; l < used_colors.length; l += 1) {
-                                var color_distinction = 0,
+                                var color_difference = 0,
                                     used_rgba_arr = used_colors[l].split(',');
 
                                 for (var m = 0; m < 3; m += 1) {
-                                    color_distinction += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
+                                    color_difference += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
                                 }
 
-                                if (color_distinction <= s.color_distinction) {
+                                if (color_difference <= s.color_difference) {
                                     is_valid = false;
 
                                     break;
