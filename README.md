@@ -1,6 +1,6 @@
 ## Chameleon.js
 
-You can easy get and use colors from image. To see how it works check the [demo](http://vadimfedorov.ru/chameleon_js).
+You can easy get and use colors from image. To see how it works check the [demo](http://vadimfedorov.ru/lab/chameleon-js).
 
 ## How to use?
 
