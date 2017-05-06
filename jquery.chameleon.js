@@ -24,6 +24,9 @@
                 readable_lum_diff: 5,
                 lum_step: 0.05
             },
+            canvas: {
+                side: 500
+            },
             limits: {
                 color_alpha: {
                     min: 0,
@@ -38,11 +41,11 @@
                 color_adapt_limit: {
                     min: 0,
                     max: 1000
+                },
+                canvas_side: {
+                    min: 50,
+                    max: 10000
                 }
-            },
-            canvas: {
-                add_w: 10,
-                add_h: 10
             },
             actions: {
 
@@ -131,6 +134,7 @@
                         color_alpha: _s.color.alpha,
                         color_difference: _s.color.difference,
                         color_adapt_limit: _s.color.adapt_limit,
+                        canvas_side: _s.canvas.side,
                         debug: false,
                         async_colorize: true,
                         apply_colors: true,
@@ -149,6 +153,7 @@
                         color_format: 'hex',
                         color_alpha: _s.color.alpha,
                         color_difference: _s.color.difference,
+                        canvas_side: _s.canvas.side,
                         debug: false,
                         onGetColorsSuccess: function(colors, $container, s) {
                             logger(['getImageColors - onGetColorsSuccess is not given!', colors, $container, s], 'warn');
@@ -186,7 +191,7 @@
                             msg: function(prop) {
                                 return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
                             },
-                            items: ['color_alpha', 'color_difference', 'color_adapt_limit']
+                            items: ['color_alpha', 'color_difference', 'color_adapt_limit', 'canvas_side']
                         },
                         {
                             type: 'string',
@@ -697,9 +702,22 @@
             $img.on({
                 'load': function (e) {
                     var target_img = e.target,
-                        canvas_w = target_img.width + _s.canvas.add_w,
-                        canvas_h = target_img.height + _s.canvas.add_h,
-                        $old_canvas = $container.find(_s.sel.chmln_canvas),
+                        canvas_w = target_img.width,
+                        canvas_h = target_img.height,
+                        max_side = Math.max(canvas_h, canvas_w);
+
+                    if (max_side > s.canvas_side) {
+                        if (max_side === canvas_h) {
+                            canvas_w = canvas_w * (s.canvas_side / canvas_h);
+                            canvas_h = s.canvas_side;
+                        } else {
+                            canvas_h = canvas_h * (s.canvas_side / canvas_w);
+                            canvas_w = s.canvas_side;
+                        }
+                    }
+
+
+                    var $old_canvas = $container.find(_s.sel.chmln_canvas),
                         $canvas = setElemAttributes($('<canvas>'), {
                             'class': clearSel(_s.sel.chmln_canvas),
                             'style': 'display: none;',
@@ -714,13 +732,13 @@
                         img_colors = [];
 
                     ctx.clearRect(0, 0, canvas_w, canvas_h);
-                    ctx.drawImage(target_img, 0, 0);
+                    ctx.drawImage(target_img, 0, 0, canvas_w, canvas_h);
 
                     var pix = ctx.getImageData(0, 0, canvas_w, canvas_h).data,
                         rgba_key = '';
 
                     for (var i = 0; i < pix.length; i += 4) {
-                        if (pix[i + 3] >= s.color_alpha) {
+                        if (pix[i + 3] > 0 && pix[i + 3] >= s.color_alpha) {
                             rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
 
                             if (img_colors[rgba_key]) {
@@ -968,7 +986,7 @@
             },
             get_s: {
                 result: function() {
-                    return _s;
+                    return $.extend({}, _s);
                 }
             },
             getDefaultSettings: {
