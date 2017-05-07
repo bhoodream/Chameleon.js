@@ -133,7 +133,6 @@
                 default_s = {};
 
             default_s[_s.actions.COLORIZECONTENT] = {
-                settings_type: _s.actions.COLORIZECONTENT,
                 dummy_back: 'aaaaaa',
                 dummy_front: '555555',
                 color_format: 'hex',
@@ -155,7 +154,6 @@
             };
 
             default_s[_s.actions.GETIMAGECOLORS] = {
-                settings_type: _s.actions.GETIMAGECOLORS,
                 sort_colors: 'primary',
                 color_format: 'hex',
                 color_alpha: _s.color.alpha,
@@ -171,12 +169,10 @@
             };
 
             default_s[_s.actions.$WRAPCOLOR] = {
-                settings_type: _s.actions.$WRAPCOLOR,
                 color: '',
                 source_color: '',
                 color_format: 'hex',
-                debug: false,
-                colors: []
+                debug: false
             };
 
             if (default_s.hasOwnProperty(type)) {
@@ -246,7 +242,7 @@
                             msg: function() {
                                 return 'Should be an array.';
                             },
-                            items: ['colors']
+                            items: []
                         },
                         {
                             type: 'object',
@@ -727,26 +723,24 @@
 
             return '';
         },
-        $wrapColor = function (s) {
+        $wrapColor = function (s, $elements, extra_s) {
             if (s) {
-                var arr_colors_format = false;
-
-                if (Array.isArray(s.colors) && s.colors.length) {
-                    arr_colors_format = s.color_format;
-                    s = s.colors.slice();
-                }
+                var extra_s_format = extra_s[0];
 
                 if (Array.isArray(s)) {
                     var $colors = null;
 
                     $.each(s, function(i, c) {
-                        c = $.extend({}, {color_format: arr_colors_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
-                        $colors = $colors === null ? $wrapColor(c) : $colors.add($wrapColor(c))
+                        c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
+
+                        var $color = $wrapColor(c, $elements, extra_s);
+
+                        $colors = $colors === null ? $color : $colors.add($color);
                     });
 
                     return $colors;
                 } else if (typeof s === 'string') {
-                    s = {color: s};
+                    s = {color: s, color_format: extra_s_format};
                 }
 
                 s.color = colorObjectFromHex({hex: s.color});
@@ -1132,9 +1126,8 @@
 
     $.fn.chameleon = function (action, settings) {
         var $elements = $(this),
-            action_passed = typeof action === 'string';
-
-        //console.log(Array.prototype.slice.call(arguments, 2));
+            action_passed = typeof action === 'string',
+            extra_s = Array.prototype.slice.call(arguments, 2);
 
         settings = action_passed ? settings : action;
         action = action_passed ? action : _s.actions.COLORIZECONTENT;
@@ -1148,10 +1141,10 @@
 
         if (actions.hasOwnProperty(action)) {
             if (actions[action].result && typeof actions[action].result === 'function') {
-                return actions[action].result(s);
+                return actions[action].result(s, $elements, extra_s);
             }
 
-            actions[action](s, $elements);
+            actions[action](s, $elements, extra_s);
         } else {
             logger(['Unknown action!', action], 'error');
         }

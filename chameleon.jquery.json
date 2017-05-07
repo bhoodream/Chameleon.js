@@ -4,13 +4,13 @@
     "description": "Easy get and use colors from image.",
     "keywords": [
         "color",
-        "text",
-        "image"
+        "image",
+        "content"
     ],
-    "version": "1.0.0",
+    "version": "1.0.1",
     "author": {
         "name": "Vadim Fedorov",
-        "url": "http://vadimfedorov.ru"
+        "url": "https://vadimfedorov.ru"
     },
     "licenses": [
         {
@@ -21,7 +21,7 @@
     "bugs": "https://github.com/bhoodream/Chameleon.js/issues",
     "homepage": "http://vadimfedorov.ru/chameleon_js",
     "docs": "https://github.com/bhoodream/Chameleon.js#chameleonjs",
-    "demo": "http://vadimfedorov.ru/chameleon_js",
+    "demo": "https://vadimfedorov.ru/lab/chameleon-js",
     "download": "https://codeload.github.com/bhoodream/Chameleon.js/zip/master",
     "dependencies": {
         "jquery": ">=1.9"
