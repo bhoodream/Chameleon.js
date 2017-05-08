@@ -198,15 +198,39 @@
                     'sort_colors': ['primary', 'hue'],
                     'color_format': ['hex', 'rgb', 'rgba']
                 },
-                validated_item = {
-                    is_allowed: true
-                };
+                fixValCase = function(allowed_values, prop, val) {
+                    var case_fixed_val = false;
 
-            if (allowed_values.hasOwnProperty(prop) && allowed_values[prop].indexOf(val) === -1) {
-                validated_item.is_allowed = false;
-                validated_item.fixed_val = allowed_values[prop][0];
-                validated_item.is_valid = false;
-                validated_item.msg = 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].';
+                    if (allowed_values.hasOwnProperty(prop)) {
+                        $.each(allowed_values[prop], function(i, allowed_val) {
+                            if (val.toLowerCase() === allowed_val.toLowerCase()) {
+                                case_fixed_val = allowed_val;
+                                return false;
+                            }
+                        });
+                    }
+
+                    return case_fixed_val || val;
+                },
+                validated_item = {is_allowed: true},
+                caseFixedVal = fixValCase(allowed_values, prop, val);
+
+            if (allowed_values.hasOwnProperty(prop)) {
+                if (caseFixedVal !== val) {
+                    validated_item = {
+                        is_allowed: true,
+                        fixed_val: caseFixedVal,
+                        is_valid: false,
+                        msg: 'Setting "' + prop + '" with value "' + val + '" case fixed to "' + caseFixedVal + '".'
+                    };
+                } else if (allowed_values[prop].indexOf(val) === -1) {
+                    validated_item = {
+                        is_allowed: false,
+                        fixed_val: allowed_values[prop][0],
+                        is_valid: false,
+                        msg: 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].'
+                    };
+                }
             }
 
             return validated_item;
@@ -259,7 +283,7 @@
                     {
                         type: 'color',
                         msg: function() {
-                            return 'Should be a color: hex (#xxx or #xxxxxx or xxx or xxxxxx) or array ([255, 255, 255, 255]) or object ({r: 255, g: 255, b: 255, alpha: 255}).';
+                            return 'Should be a color: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x).';
                         },
                         items: ['dummy_back', 'dummy_front', 'hex', 'color', 'source_color']
                     },
@@ -577,6 +601,7 @@
         },
         convertValToPercent = function(s) {
             var max_percent = 1,
+                hundred = 100,
                 val = parseFloat(s.val),
                 max = typeof s.max === 'undefined' ? _s.limits.color_alpha.max : s.max;
 
@@ -584,7 +609,7 @@
                 val = max_percent;
             } else {
                 if (val > max_percent) {
-                    val = ((val / (max / 100)) / 100).toFixed(2);
+                    val = ((val / (max / hundred)) / hundred).toFixed(2);
                 }
             }
 
@@ -794,10 +819,10 @@
             return typeof c === 'string' && c !== '' && (c.charAt(0) === "#" || (c.length < 7 && !/(\[|\]|\{|\}|%)/.test(c)));
         },
         isColorRGBA = function(c) {
-            return typeof c === 'string' && c !== '' && c.indexOf('rgba') === 0;
+            return typeof c === 'string' && c !== '' && c.toLowerCase().indexOf('rgba') === 0;
         },
         isColorRGB = function(c) {
-            return typeof c === 'string' && c !== '' && c.indexOf('rgb') === 0;
+            return typeof c === 'string' && c !== '' && c.toLowerCase().indexOf('rgb') === 0;
         },
         getColorFormat = function(color) {
             var checkColorFormat = [
