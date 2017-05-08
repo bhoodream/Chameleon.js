@@ -36,15 +36,21 @@
                 side: 500
             },
             limits: {
+                color_rgba: {
+                    min: 0,
+                    max: 255
+                },
                 color_alpha: {
                     min: 0,
-                    max: 255,
-                    max_val: 255
+                    max: 255
+                },
+                alpha: {
+                    min: 0,
+                    max: 1
                 },
                 color_difference: {
                     min: 50,
-                    max: 765,
-                    max_val: 765
+                    max: 765
                 },
                 color_adapt_limit: {
                     min: 0,
@@ -186,229 +192,305 @@
         extendSettings = function(s1, s2) {
             return $.extend({}, s1 || {}, s2 || {});
         },
+        isSettingAllowed = function(prop, val) {
+            var allowed_values = {
+                    'settings_type': [_s.actions.COLORIZECONTENT, _s.actions.GETIMAGECOLORS, _s.actions.$WRAPCOLOR],
+                    'sort_colors': ['primary', 'hue'],
+                    'color_format': ['hex', 'rgb', 'rgba']
+                },
+                validated_item = {
+                    is_allowed: true
+                };
+
+            if (allowed_values.hasOwnProperty(prop) && allowed_values[prop].indexOf(val) === -1) {
+                validated_item.is_allowed = false;
+                validated_item.fixed_val = allowed_values[prop][0];
+                validated_item.is_valid = false;
+                validated_item.msg = 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].';
+            }
+
+            return validated_item;
+        },
+        isSettingEmpty = function(val) {
+            var is_empty = false;
+
+            if (typeof val === 'string') {
+                is_empty = val === '';
+            }
+
+            return is_empty;
+        },
+        isSettingCanBeIgnored = function(prop, val) {
+            var can_be_ignored = ['source_color'];
+
+            return {
+                ignore: isSettingEmpty(val) && can_be_ignored.indexOf(prop) !== -1,
+                result: function() {
+                    logger('isSettingCanBeIgnored - setting "' + prop + '" will be ignored.', 'log');
+
+                    return {
+                        prop: prop,
+                        val: val,
+                        fixed_val: val,
+                        valid: true,
+                        msg: 'Setting "' + prop + '" is ignored.'
+                    }
+                }
+            };
+        },
         validateSettings = function(s, a) {
             var invalid = [],
-                fixed_settings = s;
+                fixed_settings = s || {},
+                val_types = [
+                    {
+                        type: 'number',
+                        msg: function(prop) {
+                            return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
+                        },
+                        items: ['color_alpha', 'alpha', 'color_difference', 'color_adapt_limit', 'canvas_side']
+                    },
+                    {
+                        type: 'string',
+                        msg: function() {
+                            return 'Should be a string.';
+                        },
+                        items: ['settings_type', 'sort_colors', 'color_format']
+                    },
+                    {
+                        type: 'color',
+                        msg: function() {
+                            return 'Should be a color: hex (#xxx or #xxxxxx or xxx or xxxxxx) or array ([255, 255, 255, 255]) or object ({r: 255, g: 255, b: 255, alpha: 255}).';
+                        },
+                        items: ['dummy_back', 'dummy_front', 'hex', 'color', 'source_color']
+                    },
+                    {
+                        type: 'boolean',
+                        msg: function() {
+                            return 'Should be a boolean value: true or false.';
+                        },
+                        items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
+                    },
+                    {
+                        type: 'array',
+                        msg: function() {
+                            return 'Should be an array.';
+                        },
+                        items: []
+                    },
+                    {
+                        type: 'object',
+                        msg: function() {
+                            return 'Should be an object.';
+                        },
+                        items: ['$img', 'rules', 'settings_values']
+                    },
+                    {
+                        type: 'function',
+                        msg: function() {
+                            return 'Should be a function.';
+                        },
+                        items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError']
+                    }
+                ],
+                fixVal = function(val, is_valid, fixCB) {
+                    var fixed_val = val;
+
+                    if (typeof fixCB === 'function' && !is_valid) {
+                        fixed_val = fixCB(val);
+                    }
+
+                    return {
+                        is_valid: is_valid,
+                        fixed_val: fixed_val
+                    };
+                },
+                validation = {
+                    numberValidation: function(val, name) {
+                        val = parseFloat(val);
+
+                        var is_valid = true;
+
+                        if (_s.limits.hasOwnProperty(name)) {
+                            is_valid = !isNaN(val) && _s.limits[name].min <= val && val <= _s.limits[name].max;
+                        } else {
+                            logger('validateSettings/checkNumberValue - limits for number setting "' + name + '" are missing!', 'warn');
+                        }
+
+                        return fixVal(val, is_valid, function(v) {
+                            if (isNaN(v)) {
+                                v = _s.limits[name].min;
+                            } else {
+                                v = Math.min(Math.max(v, _s.limits[name].min), _s.limits[name].max);
+                            }
+
+                            return v;
+                        });
+                    },
+                    stringValidation: function(val) {
+                        return fixVal(val, typeof val === 'string', function(v) {
+                            return String(v);
+                        });
+                    },
+                    colorValidation: function(val) {
+                        var is_valid = true,
+                            validateArr = function(val) {
+                                var is_valid = true;
+
+                                $.each(val, function(i, v) {
+                                    if (!isRGBAValueValid(v)) {
+                                        is_valid = false;
+                                        return false;
+                                    }
+                                });
+
+                                return is_valid;
+                            },
+                            validateObj = function(val) {
+                                var is_valid = true;
+
+                                if (!isRGBAValueValid(val.r) ||
+                                    !isRGBAValueValid(val.g) ||
+                                    !isRGBAValueValid(val.b) ||
+                                    !isRGBAValueValid(val.alpha || _s.limits.color_alpha.max)) {
+                                    is_valid = false;
+                                }
+
+                                return is_valid;
+                            };
+
+                        if (typeof val === 'string') {
+                            var isStringColorValid = function(color) {
+                                var format = getColorFormat(color) || _s.color.default_format,
+                                    validateColor = {
+                                        'hex': function(c) {
+                                            return /^#[0-9a-f]{3,6}$/i.test(addHashToHex(c).toLowerCase());
+                                        },
+                                        'rgba': function(c) {
+                                            return /rgba\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3}),\s*((?:\d+)?(?:\.)?\d+)\)/i.exec(c);
+                                        },
+                                        'rgb': function(c) {
+                                            return /rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)/i.exec(c);
+                                        }
+                                    };
+
+                                var result = validateColor[format](color);
+
+                                if (format === 'hex') {
+                                    return result;
+                                } else {
+                                    return result ? validateArr(result.slice(1)) : false;
+                                }
+                            };
+
+                            is_valid = isStringColorValid(val);
+                        } else if (Array.isArray(val)) {
+                            is_valid = validateArr(val);
+                        } else if (typeof val === 'object') {
+                            is_valid = validateObj(val);
+                        }
+
+                        return fixVal(val, is_valid, function(color) {
+                            return color ?
+                                getColorString({color: color, format: getColorFormat(color)}) :
+                                _s.color.black;
+                        });
+                    },
+                    booleanValidation: function(val) {
+                        return fixVal(val, typeof val === 'boolean', function(v) {
+                            return !!v;
+                        });
+                    },
+                    arrayValidation: function(val) {
+                        return fixVal(val, Array.isArray(val), function(v) {
+                            return [];
+                        });
+                    },
+                    objectValidation: function(val) {
+                        return fixVal(val, typeof val === 'object', function(v) {
+                            return {};
+                        });
+                    },
+                    functionValidation: function(val) {
+                        return fixVal(val, typeof val === 'function', function(v) {
+                            return function() {};
+                        });
+                    }
+                },
+                checkProps = function(s) {
+                    var check = [];
+
+                    for (var prop in s) {
+                        if (s.hasOwnProperty(prop)) {
+                            check.push(checkProp(s[prop], prop));
+                        }
+                    }
+
+                    return check;
+                },
+                checkProp = function(val, prop) {
+                    var type = false,
+                        msg = '';
+
+                    $.each(val_types, function(index, val_type) {
+                        if (val_type.items.indexOf(prop) !== -1) {
+                            type = val_type.type;
+                            msg = val_type.msg(prop);
+
+                            return false;
+                        }
+                    });
+
+                    if (type) {
+                        var ignore_setting = isSettingCanBeIgnored(prop, val);
+
+                        if (ignore_setting.ignore) {
+                            return ignore_setting.result();
+                        }
+
+                        var validated_item = $.extend(
+                            $.extend(validation[type + 'Validation'](val, prop), {msg: msg}),
+                            isSettingAllowed(prop, val)
+                        );
+
+                        return {
+                            prop: prop,
+                            val: val,
+                            fixed_val: validated_item.fixed_val,
+                            valid: validated_item.is_valid,
+                            msg: validated_item.msg
+                        };
+                    }
+
+                    logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
+
+                    return {
+                        prop: prop,
+                        val: val,
+                        fixed_val: val,
+                        valid: false,
+                        msg: 'Unknown value type "' + prop + '".'
+                    };
+                },
+                isNotValid = function(c) { return !c.valid; };
 
             if (typeof s === 'string') {
 
             } else if (typeof s === 'number') {
 
             }  else if (Array.isArray(s)) {
+                toggleDebug({debug: true});
+
                 var checkArray = {};
 
-                checkArray[_s.actions.$WRAPCOLOR] = '';
+                checkArray[_s.actions.$WRAPCOLOR] = function(s) {
+                    //console.log(s);
+                };
+
+                checkArray[a](s);
             } else if (typeof s === 'object') {
                 toggleDebug(s);
 
                 fixed_settings = $.extend({}, s);
-
-                var allowed_values = {
-                        'settings_type': [_s.actions.COLORIZECONTENT, _s.actions.GETIMAGECOLORS, _s.actions.$WRAPCOLOR],
-                        'sort_colors': ['primary', 'hue'],
-                        'color_format': ['hex', 'rgb', 'rgba']
-                    },
-                    val_types = [
-                        {
-                            type: 'number',
-                            msg: function(prop) {
-                                return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
-                            },
-                            items: ['color_alpha', 'color_difference', 'color_adapt_limit', 'canvas_side']
-                        },
-                        {
-                            type: 'string',
-                            msg: function() {
-                                return 'Should be a string.';
-                            },
-                            items: ['settings_type', 'sort_colors', 'color_format']
-                        },
-                        {
-                            type: 'color',
-                            msg: function() {
-                                return 'Should be a color: hex (#xxx or #xxxxxx or xxx or xxxxxx) or array ([255, 255, 255, 255]) or object ({r: 255, g: 255, b: 255, alpha: 255}).';
-                            },
-                            items: ['dummy_back', 'dummy_front', 'hex', 'color', 'source_color']
-                        },
-                        {
-                            type: 'boolean',
-                            msg: function() {
-                                return 'Should be a boolean value: true or false.';
-                            },
-                            items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
-                        },
-                        {
-                            type: 'array',
-                            msg: function() {
-                                return 'Should be an array.';
-                            },
-                            items: []
-                        },
-                        {
-                            type: 'object',
-                            msg: function() {
-                                return 'Should be an object.';
-                            },
-                            items: ['$img', 'rules', 'settings_values']
-                        },
-                        {
-                            type: 'function',
-                            msg: function() {
-                                return 'Should be a function.';
-                            },
-                            items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError']
-                        }
-                    ],
-                    fixVal = function(val, is_valid, fixCB) {
-                        var fixed_val = val;
-
-                        if (typeof fixCB === 'function' && !is_valid) {
-                            fixed_val = fixCB(val);
-                        }
-
-                        return {
-                            is_valid: is_valid,
-                            fixed_val: fixed_val
-                        };
-                    },
-                    validation = {
-                        numberValidation: function(val, name) {
-                            val = parseFloat(val);
-
-                            var is_valid = true;
-
-                            if (_s.limits.hasOwnProperty(name)) {
-                                is_valid = !isNaN(val) && _s.limits[name].min <= val && val <= _s.limits[name].max;
-                            } else {
-                                logger('validateSettings/checkNumberValue - limits for number setting "' + name + '" are missing!', 'warn');
-                            }
-
-                            return fixVal(val, is_valid, function(v) {
-                                if (isNaN(v)) {
-                                    v = _s.limits[name].min;
-                                } else {
-                                    v = Math.min(Math.max(v, _s.limits[name].min), _s.limits[name].max);
-                                }
-
-                                return v;
-                            });
-                        },
-                        stringValidation: function(val) {
-                            return fixVal(val, typeof val === 'string', function(v) {
-                                return String(v);
-                            });
-                        },
-                        colorValidation: function(val) {
-                            var is_valid = true,
-                                isColorValid = function(v) {
-                                    v = parseInt(v, 10);
-
-                                    var is_val_valid = true;
-
-                                    if (isNaN(v)) {
-                                        is_val_valid = false;
-                                    } else if (v < 0 || v > 255) {
-                                        is_val_valid = false;
-                                    }
-
-                                    return is_val_valid;
-                                };
-
-                            if (typeof val === 'string') {
-                                val = colorStrToHex(val).hex;
-                                is_valid = val === '' || /^#[0-9a-f]{3,6}$/i.test(addHashToHex(val).toLowerCase())
-                            } else if (Array.isArray(val)) {
-                                $.each(val, function(i, v) {
-                                    if (!isColorValid(v)) {
-                                        is_valid = false;
-                                        return false;
-                                    }
-                                });
-                            } else if (typeof val === 'object') {
-                                if (!isColorValid(val.r) || !isColorValid(val.g) || !isColorValid(val.b) || !isColorValid(val.alpha || 255)) {
-                                    is_valid = false;
-                                }
-                            }
-
-                            return fixVal(val, is_valid, function(v) {
-                                return clearHex(v);
-                            });
-                        },
-                        booleanValidation: function(val) {
-                            return fixVal(val, typeof val === 'boolean', function(v) {
-                                return !!v;
-                            });
-                        },
-                        arrayValidation: function(val) {
-                            return fixVal(val, Array.isArray(val), function(v) {
-                                return [];
-                            });
-                        },
-                        objectValidation: function(val) {
-                            return fixVal(val, typeof val === 'object', function(v) {
-                                return {};
-                            });
-                        },
-                        functionValidation: function(val) {
-                            return fixVal(val, typeof val === 'function', function(v) {
-                                return function() {};
-                            });
-                        }
-                    },
-                    checkProps = function(s) {
-                        var check = [];
-
-                        for (var prop in s) {
-                            if (s.hasOwnProperty(prop)) {
-                                check.push(checkProp(s[prop], prop));
-                            }
-                        }
-
-                        return check;
-                    },
-                    checkProp = function(val, prop) {
-                        var type = false,
-                            msg = '';
-
-                        $.each(val_types, function(index, val_type) {
-                            if (val_type.items.indexOf(prop) !== -1) {
-                                type = val_type.type;
-                                msg = val_type.msg(prop);
-
-                                return false;
-                            }
-                        });
-
-                        if (type) {
-                            var validated_item = validation[type + 'Validation'](val, prop);
-
-                            if (allowed_values.hasOwnProperty(prop) && allowed_values[prop].indexOf(val) === -1) {
-                                validated_item.fixed_val = allowed_values[prop][0];
-                                validated_item.is_valid = false;
-                                msg = 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].';
-                            }
-
-                            return {
-                                prop: prop,
-                                val: val,
-                                fixed_val: validated_item.fixed_val,
-                                valid: validated_item.is_valid,
-                                msg: msg
-                            };
-                        }
-
-                        logger('validateSettings - Unknown val_type "' + prop + '".', 'warn');
-
-                        return {
-                            prop: prop,
-                            val: val,
-                            fixed_val: val,
-                            valid: false,
-                            msg: 'Unknown value type "' + prop + '".'
-                        };
-                    },
-                    isNotValid = function(c) { return !c.valid; };
-
                 invalid = checkProps(s).filter(isNotValid);
 
                 $.each(invalid, function(index, item) {
@@ -475,6 +557,10 @@
                 if (hex.length < 6) {
                     if (hex.length >= 3) {
                         hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+                    } else if (hex.length === 2) {
+                        hex = hex[0] + hex[0] + hex[0] + hex[1] + hex[1] + hex[1];
+                    } else if (hex.length === 1) {
+                        hex = new Array(7).join(hex[0]);
                     } else {
                         hex = _s.color.black;
                     }
@@ -490,37 +576,34 @@
             return '';
         },
         convertValToPercent = function(s) {
-            var max_percent = 1;
+            var max_percent = 1,
+                val = parseFloat(s.val),
+                max = typeof s.max === 'undefined' ? _s.limits.color_alpha.max : s.max;
 
-            s.val = parseFloat(s.val);
-            s.max = typeof s.max === 'undefined' ? _s.limits.color_alpha.max : s.max;
-            s.max_val = typeof s.max_val === 'undefined' ? _s.limits.color_alpha.max_val : s.max_val;
-
-            if (isNaN(s.val)) {
-                s.val = max_percent;
+            if (isNaN(val)) {
+                val = max_percent;
             } else {
-                if (s.val > max_percent) {
-                    s.val = ((s.val / (s.max_val / 100)) / 100).toFixed(2);
+                if (val > max_percent) {
+                    val = ((val / (max / 100)) / 100).toFixed(2);
                 }
             }
 
-            return Math.min(max_percent, s.val);
+            return Math.min(max_percent, val);
         },
-        colorObjectFromHex = function(s) {
-            if (typeof s.hex === 'object') {
-                return $.extend({}, s.hex);
+        colorObjectFromStr = function(s) {
+            if (typeof s.color === 'object') {
+                return $.extend({}, s.color);
             }
 
-            var color = colorStrToHex(s.hex);
-
-            s.hex = color.hex;
-            s.alpha = s.alpha || color.alpha;
+            var color = colorStrToHexAlpha(s.color),
+                hex = color.hex,
+                alpha = s.alpha || color.alpha;
 
             // optimization: less function calls
-            if (typeof s.alpha !== 'undefined' && s.alpha < _s.limits.color_alpha.max_val) {
-                s.alpha = s.alpha === 0 ? 0 : convertValToPercent({val: s.alpha});
+            if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
+                alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
             } else {
-                s.alpha = 1;
+                alpha = 1;
             }
 
             var r_index = 0,
@@ -528,9 +611,9 @@
                 b_index = 4,
                 full_index = 6,
                 hue_step = 60,
-                r = parseInt(s.hex.substr(r_index, 2), 16),
-                g = parseInt(s.hex.substr(g_index, 2), 16),
-                b = parseInt(s.hex.substr(b_index, 2), 16),
+                r = parseInt(hex.substr(r_index, 2), 16),
+                g = parseInt(hex.substr(g_index, 2), 16),
+                b = parseInt(hex.substr(b_index, 2), 16),
                 max = Math.max(r, g, b),
                 min = Math.min(r, g, b),
                 val = max,
@@ -557,15 +640,15 @@
                 }
             }
 
-            return {hex: s.hex, r: r, g: g, b: b, alpha: s.alpha, chroma: chr, hue: hue, sat: sat, val: val};
+            return {hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val};
         },
-        getRGBString = function(c) {
+        getRGBStrFromObj = function(c) {
             return c ? 'rgb(' + [c.r, c.g, c.b].join(',') + ')' : '';
         },
-        getRGBAString = function(c) {
+        getRGBAStrFromObj = function(c) {
             return c ? 'rgba(' + [c.r, c.g, c.b, (typeof c.alpha === 'undefined' ? 1 : c.alpha)].join(',') + ')' : '';
         },
-        rgbToHex = function(color) {
+        rgbToHexAlpha = function(color) {
             var hex = '',
                 alpha = 1;
 
@@ -602,24 +685,20 @@
                 alpha: alpha
             };
         },
-        colorStrToHex = function(str) {
-            str = str || '';
-
+        colorStrToHexAlpha = function(str) {
             var alpha = 1;
 
-            if (str) {
-                if (str.indexOf('rgba') === 0 || str.indexOf('rgb') === 0) {
-                    var color = rgbToHex(str);
+            if (isColorRGBA(str) || isColorRGB(str)) {
+                var color = rgbToHexAlpha(str);
 
-                    str = color.hex;
-                    alpha = color.alpha;
-                } else {
-                    str = clearHex(str);
-                }
+                str = color.hex;
+                alpha = color.alpha;
+            } else if (isColorHex(str) || str) {
+                str = clearHex(str);
             }
 
             return {
-                hex: str,
+                hex: str || '',
                 alpha: alpha
             };
         },
@@ -650,7 +729,7 @@
             new_color.r = Math.round(Math.min(Math.max(0, r + (r * multiplier)), 255));
             new_color.g = Math.round(Math.min(Math.max(0, g + (g * multiplier)), 255));
             new_color.b = Math.round(Math.min(Math.max(0, b + (b * multiplier)), 255));
-            new_color.hex = rgbToHex(new_color).hex;
+            new_color.hex = rgbToHexAlpha(new_color).hex;
 
             return new_color;
         },
@@ -672,24 +751,24 @@
             }
 
             return try_num > limit ?
-                colorObjectFromHex({hex: lum_dir > 0 ? _s.color.white : _s.color.black}) :
+                colorObjectFromStr({color: lum_dir > 0 ? _s.color.white : _s.color.black}) :
                 front_color;
         },
-        whiteOrBlack = function(color) {
+        whiteOrBlackHex = function(color) {
             if (typeof color === 'string') {
-                color = colorObjectFromHex({hex: colorStrToHex(color).hex});
+                color = colorObjectFromStr({color: color});
             }
 
-            var diff_with_black = lumDiff(color, colorObjectFromHex({hex: _s.color.black}));
+            var diff_with_black = lumDiff(color, colorObjectFromStr({color: _s.color.black}));
 
-            return addHashToHex(diff_with_black >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white);
+            return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
         },
         makeColorReadable = function (back_color, limit, front_color) {
             var new_color = $.extend({}, front_color),
                 lum_dir = 1;
 
             if (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
-                if (lumDiff(back_color, colorObjectFromHex({hex: _s.color.black})) >= _s.color.readable_lum_diff) {
+                if (lumDiff(back_color, colorObjectFromStr({color: _s.color.black})) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
                 }
 
@@ -698,21 +777,64 @@
 
             return new_color;
         },
+        isRGBAValueValid = function(v) {
+            v = parseInt(v, 10);
+
+            var is_val_valid = true;
+
+            if (isNaN(v)) {
+                is_val_valid = false;
+            } else if (v < _s.limits.color_rgba.min || v > _s.limits.color_rgba.max) {
+                is_val_valid = false;
+            }
+
+            return is_val_valid;
+        },
+        isColorHex = function(c) {
+            return typeof c === 'string' && c !== '' && (c.charAt(0) === "#" || (c.length < 7 && !/(\[|\]|\{|\}|%)/.test(c)));
+        },
+        isColorRGBA = function(c) {
+            return typeof c === 'string' && c !== '' && c.indexOf('rgba') === 0;
+        },
+        isColorRGB = function(c) {
+            return typeof c === 'string' && c !== '' && c.indexOf('rgb') === 0;
+        },
+        getColorFormat = function(color) {
+            var checkColorFormat = [
+                    {format: 'hex', check: isColorHex},
+                    {format: 'rgba', check: isColorRGBA},
+                    {format: 'rgb', check: isColorRGB}
+                ],
+                format = false;
+
+            $.each(checkColorFormat, function(i, item) {
+                if (item.check(color)) {
+                    format = item.format;
+
+                    return false;
+                }
+            });
+
+            if (!format) {
+                logger(['getColorFormat - format not found!', color], 'warn');
+            }
+
+            return format;
+        },
         getColorString = function(s) {
             s = s || {};
             s.format = s.format || _s.color.default_format;
 
             if (typeof s.color === 'string') {
-                var color = colorStrToHex(s.color);
-                s.color = colorObjectFromHex({hex: color.hex, alpha: color.alpha});
+                s.color = colorObjectFromStr(s);
             }
 
             var format = {
                 'hex': function(c) {
                     return addHashToHex(c.hex);
                 },
-                'rgb': getRGBString,
-                'rgba': getRGBAString
+                'rgb': getRGBStrFromObj,
+                'rgba': getRGBAStrFromObj
             };
 
             if (format.hasOwnProperty(s.format)) {
@@ -743,8 +865,8 @@
                     s = {color: s, color_format: extra_s_format};
                 }
 
-                s.color = colorObjectFromHex({hex: s.color});
-                s.source_color = colorObjectFromHex({hex: s.source_color});
+                s.color = colorObjectFromStr({color: s.color});
+                s.source_color = colorObjectFromStr({color: s.source_color});
                 s.color_format = s.color_format || _s.color.default_format;
 
                 var $container = $('<div class="chmln__colors-elem-wrapper">'),
@@ -768,7 +890,10 @@
                                 s.color = s.color.alpha > _s.color.contrast_alpha ? s.color : _s.color.white;
                             }
 
-                            s.$elem.css({'background-color': color, 'color': whiteOrBlack(s.color)}).html(s.html);
+                            s.$elem.css({
+                                'background-color': color,
+                                'color': addHashToHex(whiteOrBlackHex(s.color))
+                            }).html(s.html);
                         }
                     };
 
@@ -892,7 +1017,7 @@
 
                             if (is_valid) {
                                 used_colors.push(rgba_string);
-                                img_colors.push(colorObjectFromHex({hex: rgbToHex(rgba_arr).hex, alpha: rgba_arr[3]}));
+                                img_colors.push(colorObjectFromStr({color: rgbToHexAlpha(rgba_arr).hex, alpha: rgba_arr[3]}));
                             }
                         }
                     }
@@ -916,7 +1041,7 @@
 
             if ($elem.length) {
                 var marks = [],
-                    background = img_colors[0] || colorObjectFromHex({hex: s.dummy_back}),
+                    background = img_colors[0] || colorObjectFromStr({color: s.dummy_back}),
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
@@ -929,7 +1054,7 @@
                 }
 
                 while (img_colors.length < mark_amt_affix) {
-                    img_colors.push(colorObjectFromHex({hex: s.dummy_front}));
+                    img_colors.push(colorObjectFromStr({color: s.dummy_front}));
                 }
 
                 if (s.adapt_colors) {
@@ -946,10 +1071,10 @@
                 }
 
                 if (s.apply_colors) {
-                    $elem.css('background-color', getRGBAString(background));
+                    $elem.css('background-color', getRGBAStrFromObj(background));
 
                     for (var i = 0; i < marks.length; i += 1) {
-                        marks[i].css('color', getRGBAString(item_colors[i + 1]));
+                        marks[i].css('color', getRGBAStrFromObj(item_colors[i + 1]));
 
                         for (var l = 0; l < marks[i].length; l += 1) {
                             var node_name = marks[i][l].nodeName.toLowerCase();
@@ -958,7 +1083,7 @@
                                 var rules = s.rules[node_name].split(',');
 
                                 for (var k = 0; k < rules.length; k += 1) {
-                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = getRGBAString(item_colors[i + 1]);
+                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = getRGBAStrFromObj(item_colors[i + 1]);
                                 }
                             }
                         }
@@ -1017,8 +1142,8 @@
             getDefaultSettings: {
                 result: getDefaultSettings
             },
-            colorObjectFromHex: {
-                result: colorObjectFromHex
+            colorObjectFromStr: {
+                result: colorObjectFromStr
             },
             sortColors: {
                 result: sortImageColors
