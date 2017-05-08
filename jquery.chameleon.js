@@ -725,7 +725,7 @@
         },
         $wrapColor = function (s, $elements, extra_s) {
             if (s) {
-                var extra_s_format = extra_s[0];
+                var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format;
 
                 if (Array.isArray(s)) {
                     var $colors = null;
