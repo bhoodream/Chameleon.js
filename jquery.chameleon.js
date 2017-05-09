@@ -173,9 +173,9 @@
             };
 
             default_s[_s.actions.$WRAPCOLOR] = {
-                color: '',
-                source_color: '',
                 color_format: 'hex',
+                color: {r: 0, g: 0, b: 0},
+                source_color: {r: 255, g: 255, b: 255},
                 debug: false
             };
 
@@ -621,35 +621,49 @@
             } else {
                 if (val > max_percent) {
                     val = ((val / (max / hundred)) / hundred).toFixed(2);
+                } else {
+                    if (val < 0) {
+                        val = max_percent
+                    }
                 }
             }
 
             return Math.min(max_percent, val);
         },
         colorObjectFromStr = function(s) {
-            if (typeof s.color === 'object') {
-                return $.extend({}, s.color);
-            }
-
-            var color = colorStrToHexAlpha(s.color),
-                hex = color.hex,
-                alpha = s.alpha || color.alpha;
-
-            // optimization: less function calls
-            if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
-                alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
-            } else {
-                alpha = 1;
-            }
-
             var r_index = 0,
                 g_index = 2,
                 b_index = 4,
-                full_index = 6,
+                color, hex, alpha, r, g, b;
+
+            if (typeof s.color === 'object') {
+                if (Array.isArray(s.color)) {
+                    var clone_color = s.color.slice();
+
+                    s.color = {
+                        r: clone_color[0],
+                        g: clone_color[1],
+                        b: clone_color[2],
+                        alpha: clone_color[3]
+                    };
+                }
+
+                r = limitRGBAValue(s.color.r);
+                g = limitRGBAValue(s.color.g);
+                b = limitRGBAValue(s.color.b);
+                alpha = s.color.alpha || s.alpha || _s.limits.color_alpha.max;
+                hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
+            } else {
+                color = colorStrToHexAlpha(s.color);
+                hex = color.hex;
+                alpha = s.alpha || color.alpha;
+                r = parseInt(hex.substr(r_index, 2), 16);
+                g = parseInt(hex.substr(g_index, 2), 16);
+                b = parseInt(hex.substr(b_index, 2), 16);
+            }
+
+            var full_index = 6,
                 hue_step = 60,
-                r = parseInt(hex.substr(r_index, 2), 16),
-                g = parseInt(hex.substr(g_index, 2), 16),
-                b = parseInt(hex.substr(b_index, 2), 16),
                 max = Math.max(r, g, b),
                 min = Math.min(r, g, b),
                 val = max,
@@ -676,6 +690,13 @@
                 }
             }
 
+            // optimization: less function calls
+            if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
+                alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
+            } else {
+                alpha = 1;
+            }
+
             return {hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val};
         },
         getRGBStrFromObj = function(c) {
@@ -692,10 +713,8 @@
                 var color_split_by_bracket = color.split('(');
 
                 if (color_split_by_bracket.length > 1) {
-                    var format = color_split_by_bracket[0].trim();
-
                     if (validateColorStr(color)) {
-                        color = parseColorStr(color, format);
+                        color = parseColorStr(color, color_split_by_bracket[0].trim().toLowerCase());
                     } else {
                         hex = color;
                         logger(['rgbaToHexAlpha - not valid rgb/rgba color!', color], 'warn');
@@ -829,7 +848,6 @@
                     return result && result.length > 4 ? result.slice(1, 5) : false;
                 },
                 'rgb': function(c) {
-                    //var result = /rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3}),\s*((?:\d+)?(?:\.)?\d+)\)/i.exec(c); // bad
                     var result = /rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*(?:\d+)?(?:\.)?\d+)?\)/i.exec(c); // good
 
                     return result && result.length > 3 ? result.slice(1, 4) : false;
@@ -859,9 +877,14 @@
             $.each(arr, function(i, v) {
                 if (!isRGBAValueValid(v)) {
                     is_valid = false;
+
                     return false;
                 }
             });
+
+            if (!is_valid) {
+                is_valid = arr.length === 3 || arr.length === 4;
+            }
 
             return is_valid;
         },
@@ -875,7 +898,20 @@
                 is_valid = false;
             }
 
+            if (!is_valid) {
+                is_valid = typeof obj.r !== 'undefined' && typeof obj.g !== 'undefined' && typeof obj.b !== 'undefined';
+            }
+
             return is_valid;
+        },
+        limitRGBAValue = function(val) {
+            return val ?
+                Math.max(
+                    _s.limits.color_rgba.min,
+                    Math.min(
+                        _s.limits.color_rgba.max,
+                        parseInt(String(val).slice(0, 3), 10))
+                ) : 0;
         },
         isColorValid = function(color) {
             var is_valid = true;
