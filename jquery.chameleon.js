@@ -21,8 +21,14 @@
                 $WRAPCOLOR: '$wrapColor'
             },
             color: {
-                black: '000',
-                white: 'fff',
+                black: {
+                    hex: '000',
+                    rgb: {r: 0, g: 0, b: 0}
+                },
+                white: {
+                    hex: 'fff',
+                    rgb: {r: 255,g: 255,b: 255}
+                },
                 adapt_limit: 200,
                 alpha: 200,
                 difference: 120,
@@ -53,7 +59,7 @@
                     max: 765
                 },
                 color_adapt_limit: {
-                    min: 0,
+                    min: 1,
                     max: 1000
                 },
                 canvas_side: {
@@ -137,8 +143,6 @@
                 default_s = {};
 
             default_s[_s.actions.COLORIZECONTENT] = {
-                dummy_back: 'aaaaaa',
-                dummy_front: '555555',
                 color_format: 'hex',
                 color_alpha: _s.color.alpha,
                 color_difference: _s.color.difference,
@@ -152,6 +156,8 @@
                 insert_colors: false,
                 data_colors: false,
                 rules: {},
+                dummy_back: _s.color.white.rgb,
+                dummy_front: _s.color.black.rgb,
                 afterColorized: function() {},
                 beforeAsyncColorized: function() {},
                 afterAsyncColorized: function() {}
@@ -174,8 +180,8 @@
 
             default_s[_s.actions.$WRAPCOLOR] = {
                 color_format: 'hex',
-                color: {r: 0, g: 0, b: 0},
-                source_color: {r: 255, g: 255, b: 255},
+                color: _s.color.black.rgb,
+                source_color: _s.color.white.rgb,
                 debug: false
             };
 
@@ -282,9 +288,9 @@
                     {
                         type: 'color',
                         msg: function() {
-                            return 'Should be a color: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x).';
+                            return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": xxx, "g": xxx, "b": xxx, "alpha": x}).';
                         },
-                        items: ['dummy_back', 'dummy_front', 'hex', 'color', 'source_color']
+                        items: ['dummy_back', 'dummy_front', 'color', 'source_color']
                     },
                     {
                         type: 'boolean',
@@ -344,7 +350,7 @@
                         }
                     }
 
-                    return _s.color.black;
+                    return _s.color.black.hex;
                 },
                 fixVal = function(val, is_valid, fixCB) {
                     var fixed_val = val;
@@ -597,7 +603,7 @@
                     } else if (hex.length === 1) {
                         hex = new Array(7).join(hex[0]);
                     } else {
-                        hex = _s.color.black;
+                        hex = _s.color.black.hex;
                     }
                 }
 
@@ -811,7 +817,7 @@
             }
 
             return try_num > limit ?
-                colorObjectFromStr({color: lum_dir > 0 ? _s.color.white : _s.color.black}) :
+                colorObjectFromStr({color: lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex}) :
                 front_color;
         },
         whiteOrBlackHex = function(color) {
@@ -819,16 +825,16 @@
                 color = colorObjectFromStr({color: color});
             }
 
-            var diff_with_black = lumDiff(color, colorObjectFromStr({color: _s.color.black}));
+            var diff_with_black = lumDiff(color, colorObjectFromStr({color: _s.color.black.hex}));
 
-            return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black : _s.color.white;
+            return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black.hex : _s.color.white.hex;
         },
         makeColorReadable = function (back_color, limit, front_color) {
             var new_color = $.extend({}, front_color),
                 lum_dir = 1;
 
             if (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
-                if (lumDiff(back_color, colorObjectFromStr({color: _s.color.black})) >= _s.color.readable_lum_diff) {
+                if (lumDiff(back_color, colorObjectFromStr({color: _s.color.black.hex})) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
                 }
 
@@ -1051,7 +1057,7 @@
                                     '<span class="chmln__colors-elem-text">' + s.html + '</span>' +
                                     '<div class="chmln__colors-elem-overlay" style="opacity: ' + (1 - s.color.alpha) + ';"></div>';
                                 color = addHashToHex(s.color.hex);
-                                s.color = s.color.alpha > _s.color.contrast_alpha ? s.color : _s.color.white;
+                                s.color = s.color.alpha > _s.color.contrast_alpha ? s.color : _s.color.white.hex;
                             }
 
                             s.$elem.css({
