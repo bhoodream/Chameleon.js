@@ -27,7 +27,7 @@
                 },
                 white: {
                     hex: 'fff',
-                    rgb: {r: 255,g: 255,b: 255}
+                    rgb: {r: 255, g: 255, b: 255}
                 },
                 adapt_limit: 200,
                 alpha: 200,
@@ -155,7 +155,14 @@
                 all_colors: false,
                 insert_colors: false,
                 data_colors: false,
-                rules: {},
+                rules: {
+                    "background": {
+                        "prop": "background-color"
+                    },
+                    "all": {
+                        "prop": "color"
+                    }
+                },
                 dummy_back: _s.color.white.rgb,
                 dummy_front: _s.color.black.rgb,
                 afterColorized: function() {},
@@ -288,7 +295,7 @@
                     {
                         type: 'color',
                         msg: function() {
-                            return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": xxx, "g": xxx, "b": xxx, "alpha": x}).';
+                            return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": x, "g": x, "b": x, "alpha": x}).';
                         },
                         items: ['dummy_back', 'dummy_front', 'color', 'source_color']
                     },
@@ -616,6 +623,9 @@
 
             return '';
         },
+        getAlpha = function(c) {
+          return c.alpha || c.a;
+        },
         convertValToPercent = function(s) {
             var max_percent = 1,
                 hundred = 100,
@@ -854,7 +864,7 @@
                     return result && result.length > 4 ? result.slice(1, 5) : false;
                 },
                 'rgb': function(c) {
-                    var result = /rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*(?:\d+)?(?:\.)?\d+)?\)/i.exec(c); // good
+                    var result = /rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*(?:\d+)?(?:\.)?\d+)?\)/i.exec(c);
 
                     return result && result.length > 3 ? result.slice(1, 4) : false;
                 }
@@ -1241,22 +1251,36 @@
                 }
 
                 if (s.apply_colors) {
-                    $elem.css('background-color', getRGBAStrFromObj(background));
+                    var applyRules = function(rule, $elem, color, default_prop) {
+                        default_prop = default_prop || 'color';
 
-                    for (var i = 0; i < marks.length; i += 1) {
-                        marks[i].css('color', getRGBAStrFromObj(item_colors[i + 1]));
-
-                        for (var l = 0; l < marks[i].length; l += 1) {
-                            var node_name = marks[i][l].nodeName.toLowerCase();
-
-                            if (s.rules.hasOwnProperty(node_name)) {
-                                var rules = s.rules[node_name].split(',');
-
-                                for (var k = 0; k < rules.length; k += 1) {
-                                    marks[i][l].style[rules[k].replace(/\s/g, '')] = getRGBAStrFromObj(item_colors[i + 1]);
+                        if (rule) {
+                            if (typeof rule === 'function') {
+                                rule($elem, color);
+                            } else if (typeof rule === 'object') {
+                                if (Array.isArray(rule)) {
+                                    $.each(rule, function(i, r) { applyRules(r, $elem, color); });
+                                } else {
+                                    $elem.css(rule.prop || default_prop, getRGBAStrFromObj(color));
                                 }
+                            } else {
+                                $elem.css(default_prop, getRGBAStrFromObj(color));
                             }
                         }
+                    };
+
+                    applyRules(s.rules.background, $elem, background, 'background-color');
+
+                    for (var i = 0; i < marks.length; i += 1) {
+                        applyRules(s.rules.all, marks[i], item_colors[i + 1]);
+
+                        $.each(marks[i], function(index, m) {
+                            var node_name = m.nodeName.toLowerCase();
+
+                            if (s.rules.hasOwnProperty(node_name)) {
+                                applyRules(s.rules[node_name], $(m), item_colors[i + 1]);
+                            }
+                        });
                     }
                 }
 
