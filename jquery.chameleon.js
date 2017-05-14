@@ -18,7 +18,7 @@
             actions: {
                 COLORIZECONTENT: 'colorizeContent',
                 GETIMAGECOLORS: 'getImageColors',
-                $WRAPCOLOR: '$wrapColor'
+                WRAPCOLOR: 'wrapColor'
             },
             color: {
                 black: {
@@ -185,7 +185,7 @@
                 }
             };
 
-            default_s[_s.actions.$WRAPCOLOR] = {
+            default_s[_s.actions.WRAPCOLOR] = {
                 color_format: 'hex',
                 color: _s.color.black.rgb,
                 source_color: _s.color.white.rgb,
@@ -205,7 +205,7 @@
         },
         isSettingAllowed = function(prop, val) {
             var allowed_values = {
-                    'settings_type': [_s.actions.COLORIZECONTENT, _s.actions.GETIMAGECOLORS, _s.actions.$WRAPCOLOR],
+                    'settings_type': [_s.actions.COLORIZECONTENT, _s.actions.GETIMAGECOLORS, _s.actions.WRAPCOLOR],
                     'sort_colors': ['primary', 'hue'],
                     'color_format': ['hex', 'rgb', 'rgba']
                 },
@@ -488,7 +488,7 @@
 
                 var checkArray = {};
 
-                checkArray[_s.actions.$WRAPCOLOR] = function(s) {
+                checkArray[_s.actions.WRAPCOLOR] = function(s) {
                     var r = false,
                         invalid = s.filter(function(c) {
                             var is_valid = false;
@@ -514,7 +514,7 @@
                         var fixed_colors = s.map(fixColor);
                         r = {
                             invalid: {
-                                prop: _s.actions.$WRAPCOLOR,
+                                prop: _s.actions.WRAPCOLOR,
                                 val: s,
                                 fixed_val: fixed_colors,
                                 valid: false,
@@ -1025,7 +1025,7 @@
 
             return '';
         },
-        $wrapColor = function (s, $elements, extra_s) {
+        wrapColor = function (s, $elements, extra_s) {
             if (s) {
                 var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format;
 
@@ -1035,7 +1035,7 @@
                     $.each(s, function(i, c) {
                         c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
 
-                        var $color = $wrapColor(c, $elements, extra_s);
+                        var $color = wrapColor(c, $elements, extra_s);
 
                         $colors = $colors === null ? $color : $colors.add($color);
                     });
@@ -1296,12 +1296,12 @@
 
                     $.each(img_colors, function (index, item) {
                         if (index === 0) {
-                            $colors_container.append($wrapColor({color: background, color_format: s.color_format}));
+                            $colors_container.append(wrapColor({color: background, color_format: s.color_format}));
                         } else {
                             if (item_colors[index]) {
-                                $colors_container.append($wrapColor({color: item_colors[index], source_color: item, color_format: s.color_format}));
+                                $colors_container.append(wrapColor({color: item_colors[index], source_color: item, color_format: s.color_format}));
                             } else if (s.all_colors) {
-                                $colors_container.append($wrapColor({color: item, color_format: s.color_format}));
+                                $colors_container.append(wrapColor({color: item, color_format: s.color_format}));
                             }
                         }
                     });
@@ -1439,8 +1439,8 @@
         $elements.each(handleElement);
     };
 
-    actions[_s.actions.$WRAPCOLOR] = {
-        result: $wrapColor
+    actions[_s.actions.WRAPCOLOR] = {
+        result: wrapColor
     };
 
     $.fn.chameleon = function (action, settings) {
