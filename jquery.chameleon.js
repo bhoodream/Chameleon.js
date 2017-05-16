@@ -149,7 +149,7 @@
                 color_adapt_limit: _s.color.adapt_limit,
                 canvas_side: _s.canvas.side,
                 debug: false,
-                async_colorize: true,
+                async_colorize: false,
                 apply_colors: true,
                 adapt_colors: true,
                 all_colors: false,
@@ -177,12 +177,8 @@
                 color_difference: _s.color.difference,
                 canvas_side: _s.canvas.side,
                 debug: false,
-                onGetColorsSuccess: function(colors, $container, s) {
-                    logger([_s.actions.GETIMAGECOLORS + ' - onGetColorsSuccess is not given!', colors, $container, s], 'warn');
-                },
-                onGetColorsError: function(colors, $container, s) {
-                    logger([_s.actions.GETIMAGECOLORS + ' - error on img load!', colors, $container, s], 'error');
-                }
+                onGetColorsSuccess: function() {},
+                onGetColorsError: function() {}
             };
 
             default_s[_s.actions.WRAPCOLOR] = {
