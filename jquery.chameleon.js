@@ -15,6 +15,7 @@
 
 (function ($, window, undefined) {
     var _s = {
+            content_prefix: 'chmln',
             actions: {
                 COLORIZECONTENT: 'colorizeContent',
                 GETIMAGECOLORS: 'getImageColors',
@@ -68,12 +69,14 @@
                 }
             },
             sel: {
-                chmln: '.chmln',
-                chmln_canvas: '.chmln__canvas',
-                chmln_img: '.chmln__img',
-                chmln_colors: '.chmln__colors',
-                chmln_async_colorize: '.chmln_async_colorize',
-                chmln_colorize_done: '.chmln_colorize_done'
+                chmln: '.chmln'
+            },
+            _sel: {
+                _canvas: '__canvas',
+                _img: '__img',
+                _colors: '__colors',
+                _async_colorize: '_async_colorize',
+                _colorize_done: '_colorize_done'
             },
             $: {},
             tpl: {}
@@ -122,7 +125,7 @@
         getStopColorize = function(s) {
             if (s && s.$elem && s.$elem.length) {
                 if (!isUndefined(s.val)) {
-                    if (s.$elem.hasClass(clearSel(_s.sel.chmln_async_colorize))) {
+                    if (s.$elem.hasClass(clearSel(_s.sel.chmln + _s._sel._async_colorize))) {
                         s.$elem.attr('data-stopColorize', s.val);
                     }
                 }
@@ -143,6 +146,7 @@
                 default_s = {};
 
             default_s[_s.actions.COLORIZECONTENT] = {
+                content_prefix: _s.content_prefix,
                 color_format: 'hex',
                 color_alpha: _s.color.alpha,
                 color_difference: _s.color.difference,
@@ -157,6 +161,70 @@
                 data_colors: false,
                 dummy_back: _s.color.white.hex,
                 dummy_front: _s.color.black.hex,
+                content: {
+                    root_sel: 'body',
+                    items: [
+                        {
+                            container: {
+                                'tag': 'div'
+                            },
+                            elements: [
+                                {
+                                    'tag': 'div',
+                                    'class': 'chmln__wrapper _clearfix',
+                                    'content': '',
+                                    'no_colorize': true,
+                                    'children': [
+                                        {
+                                            'tag': 'div',
+                                            'class': 'chmln__wrapper _example-text',
+                                            'content': '',
+                                            'no_colorize': true,
+                                            'children': [
+                                                {
+                                                    'tag': 'h2',
+                                                    'class': 'chmln__title',
+                                                    'content': 'Chameleon Title'
+                                                },
+                                                {
+                                                    'tag': 'blockquote',
+                                                    'class': 'chmln__blockquote',
+                                                    'content': 'Chameleon Blockquote',
+                                                    'children': [
+                                                        {
+                                                            'tag': 'cite',
+                                                            'class': 'chmln__cite',
+                                                            'content': 'Chameleon Blockquote Cite'
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    'tag': 'p',
+                                                    'class': 'chmln__paragraph',
+                                                    'content': 'Chameleon Paragraph'
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            'tag': 'div',
+                                            'class': 'chmln__wrapper _example-img',
+                                            'content': '',
+                                            'no_colorize': true,
+                                            'children': [
+                                                {
+                                                    'tag': 'img',
+                                                    'content': '',
+                                                    'no_colorize': true,
+                                                    'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                },
                 rules: {
                     'background': {
                         'prop': 'background-color'
@@ -195,6 +263,9 @@
             logger('getDefaultSettings - Unknown settings type given "' + type + '"!', 'warn');
 
             return {};
+        },
+        getChmlnSel = function(s) {
+            return '.' + (s.content_prefix || _s.content_prefix);
         },
         extendSettings = function(s1, s2) {
             return $.extend({}, s1 || {}, s2 || {});
@@ -282,7 +353,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['settings_type', 'sort_colors', 'color_format']
+                        items: ['content_prefix', 'settings_type', 'sort_colors', 'color_format']
                     },
                     {
                         type: 'color',
@@ -310,7 +381,7 @@
                         msg: function() {
                             return 'Should be an object.';
                         },
-                        items: ['$img', 'rules', 'settings_values']
+                        items: ['$img', 'content', 'rules', 'settings_values']
                     },
                     {
                         type: 'function',
@@ -322,10 +393,10 @@
                 ],
                 fixColor = function(c) {
                     if (c) {
-                        var isWithSource = function() {
-                                return typeof c.color !== 'undefined';
+                        var isWithColor = function() {
+                                return !isUndefined(c.color);
                             },
-                            fixWithSource = function(c) {
+                            fixWithColor = function(c) {
                                 var fixed_c = $.extend(c, {
                                     color: getColorString({color: c.color, format: getColorFormat(c.color)})
                                 });
@@ -342,8 +413,8 @@
                                 return fixed_c;
                             };
 
-                        if (isWithSource(c)) {
-                            return fixWithSource(c);
+                        if (isWithColor(c)) {
+                            return fixWithColor(c);
                         } else {
                             return getColorString({color: c, format: getColorFormat(c)});
                         }
@@ -385,8 +456,12 @@
                             return v;
                         });
                     },
-                    stringValidation: function(val) {
+                    stringValidation: function(val, prop) {
                         return fixVal(val, typeof val === 'string', function(v) {
+                            if (prop === 'content_prefix') {
+                                v = _s.content_prefix;
+                            }
+
                             return String(v);
                         });
                     },
@@ -471,8 +546,43 @@
                 },
                 isNotValid = function(c) { return !c.valid; };
 
-            if (typeof s === 'string') {
+            var check_result;
 
+            if (typeof s === 'string') {
+                toggleDebug({debug: true});
+
+                var checkString = {};
+
+                checkString[_s.actions.WRAPCOLOR] = function(s) {
+                    var r = false,
+                        invalid = !isColorValid(s);
+
+                    if (invalid) {
+                        var fixed_val = fixColor(s);
+
+                        r = {
+                            invalid: {
+                                prop: _s.actions.WRAPCOLOR,
+                                val: s,
+                                fixed_val: fixed_val,
+                                valid: false,
+                                msg: 'Color should be valid! Invalid color: ' + JSON.stringify(s) + '.'
+                            },
+                            fixed_settings: fixed_val
+                        };
+                    }
+
+                    return r;
+                };
+
+                if (checkString.hasOwnProperty(a)) {
+                    check_result = checkString[a](s);
+
+                    if (check_result) {
+                        invalid.push(check_result.invalid);
+                        fixed_settings = check_result.fixed_settings;
+                    }
+                }
             } else if (typeof s === 'number') {
 
             }  else if (Array.isArray(s)) {
@@ -482,6 +592,12 @@
 
                 checkArray[_s.actions.WRAPCOLOR] = function(s) {
                     var r = false,
+                        invalid = false,
+                        arr_is_color = isColorValid(s);
+
+                    if (arr_is_color) {
+                        invalid = !arr_is_color;
+                    } else {
                         invalid = s.filter(function(c) {
                             var is_valid = false;
 
@@ -490,7 +606,7 @@
                             } else if (typeof c === 'object') {
                                 if (Array.isArray(c)) {
                                     is_valid = isColorValid(c);
-                                } else if (typeof c.color !== 'undefined') {
+                                } else if (!isUndefined(c.color)) {
                                     is_valid = isColorValid(c.color);
 
                                     if (c.source_color) {
@@ -501,18 +617,20 @@
 
                             return !is_valid;
                         });
+                    }
 
-                    if (invalid.length) {
-                        var fixed_colors = s.map(fixColor);
+                    if (invalid && invalid.length) {
+                        var fixed_val = s.map(fixColor);
+
                         r = {
                             invalid: {
                                 prop: _s.actions.WRAPCOLOR,
                                 val: s,
-                                fixed_val: fixed_colors,
+                                fixed_val: fixed_val,
                                 valid: false,
                                 msg: 'All colors should be valid! Invalid colors: ' + JSON.stringify(invalid) + '.'
                             },
-                            fixed_settings: fixed_colors
+                            fixed_settings: fixed_val
                         };
                     }
 
@@ -520,11 +638,11 @@
                 };
 
                 if (checkArray.hasOwnProperty(a)) {
-                    var bad_colors = checkArray[a](s);
+                    check_result = checkArray[a](s);
 
-                    if (bad_colors) {
-                        invalid.push(bad_colors.invalid);
-                        fixed_settings = bad_colors.fixed_settings;
+                    if (check_result) {
+                        invalid.push(check_result.invalid);
+                        fixed_settings = check_result.fixed_settings;
                     }
                 }
             } else if (typeof s === 'object') {
@@ -622,7 +740,7 @@
             var max_percent = 1,
                 hundred = 100,
                 val = parseFloat(s.val),
-                max = typeof s.max === 'undefined' ? _s.limits.color_alpha.max : s.max;
+                max = isUndefined(s.max) ? _s.limits.color_alpha.max : s.max;
 
             if (isNaN(val)) {
                 val = max_percent;
@@ -665,7 +783,6 @@
                 color = colorStrToHexAlpha(s.color);
 
                 if (!color.hex) {
-                    logger(['colorObjectFromStr - color is missing', s.color], 'warn');
                     return false;
                 }
 
@@ -705,7 +822,7 @@
             }
 
             // optimization: less function calls
-            if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
+            if (!isUndefined(alpha) && alpha < _s.limits.color_alpha.max) {
                 alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
             } else {
                 alpha = 1;
@@ -717,7 +834,7 @@
             return c ? 'rgb(' + [c.r, c.g, c.b].join(',') + ')' : '';
         },
         getRGBAStrFromObj = function(c) {
-            return c ? 'rgba(' + [c.r, c.g, c.b, (typeof c.alpha === 'undefined' ? 1 : c.alpha)].join(',') + ')' : '';
+            return c ? 'rgba(' + [c.r, c.g, c.b, (isUndefined(c.alpha) ? 1 : c.alpha)].join(',') + ')' : '';
         },
         rgbaToHexAlpha = function(color) {
             var hex = '',
@@ -741,13 +858,13 @@
                     hex += decToHexadec(color[i]);
                 }
 
-                if (typeof color[3] !== 'undefined') {
+                if (!isUndefined(color[3])) {
                     alpha = parseFloat(color[3]);
                 }
             } else if (typeof color === 'object') {
                 hex += decToHexadec(color.r) + decToHexadec(color.g) + decToHexadec(color.b);
 
-                if (typeof color.alpha !== 'undefined') {
+                if (!isUndefined(color.alpha)) {
                     alpha = parseFloat(color.alpha);
                 }
             }
@@ -897,7 +1014,9 @@
             });
 
             if (!is_valid) {
-                is_valid = arr.length === 3 || arr.length === 4;
+                var is_numbers = !arr.filter(function(c) { return isNaN(parseFloat(c)); }).length;
+
+                is_valid = (arr.length === 3 || arr.length === 4) && is_numbers;
             }
 
             return is_valid;
@@ -913,7 +1032,7 @@
             }
 
             if (!is_valid) {
-                is_valid = typeof obj.r !== 'undefined' && typeof obj.g !== 'undefined' && typeof obj.b !== 'undefined';
+                is_valid = !isUndefined(obj.r) && !isUndefined(obj.g) && !isUndefined(obj.b);
             }
 
             return is_valid;
@@ -1031,13 +1150,17 @@
                     if (Array.isArray(s)) {
                         var $colors = null;
 
-                        $.each(s, function (i, c) {
-                            c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
+                        if (isColorValid(s)) {
+                            $colors = wrapColor(colorObjectFromStr({color: s}), $elements, extra_s);
+                        } else {
+                            $.each(s, function (i, c) {
+                                c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
 
-                            var $color = wrapColor(c, $elements, extra_s);
+                                var $color = wrapColor(c, $elements, extra_s);
 
-                            $colors = $colors === null ? $color : $colors.add($color);
-                        });
+                                $colors = $colors === null ? $color : $colors.add($color);
+                            });
+                        }
 
                         return $colors;
                     } else {
@@ -1067,7 +1190,7 @@
                             if (color) {
                                 s.html = s.html || color;
 
-                                if (s.format === 'rgba' && typeof s.color.alpha !== 'undefined' && s.color.alpha < 1) {
+                                if (s.format === 'rgba' && !isUndefined(s.color.alpha) && s.color.alpha < 1) {
                                     s.html =
                                         '<span class="chmln__colors-elem-text">' + s.html + '</span>' +
                                         '<div class="chmln__colors-elem-overlay" style="opacity: ' + (1 - s.color.alpha) + ';"></div>';
@@ -1144,9 +1267,9 @@
                 'load': function (e) {
                     var target_img = e.target,
                         canvas = canvasSide({w: target_img.width, h: target_img.height, side: s.canvas_side}),
-                        $old_canvas = $container.find(_s.sel.chmln_canvas),
+                        $old_canvas = $container.find(_s.sel.chmln + _s._sel._canvas),
                         $canvas = setElemAttributes($('<canvas>'), {
-                            'class': clearSel(_s.sel.chmln_canvas),
+                            'class': clearSel(_s.sel.chmln + _s._sel._canvas),
                             'style': 'display: none;',
                             'width': canvas.w,
                             'height': canvas.h
@@ -1291,12 +1414,12 @@
                 }
 
                 if (s.insert_colors) {
-                    var $colors_container = $elem.find(_s.sel.chmln_colors);
+                    var $colors_container = $elem.find(_s.sel.chmln + _s._sel._colors);
 
                     if ($colors_container.length) {
                         $colors_container.html('');
                     } else {
-                        $colors_container = $('<div class="' + clearSel(_s.sel.chmln_colors) + '">');
+                        $colors_container = $('<div class="' + clearSel(_s.sel.chmln + _s._sel._colors) + '">');
                         $elem.append($colors_container);
                     }
 
@@ -1323,14 +1446,14 @@
                     });
                 }
 
-                $elem.addClass(clearSel(_s.sel.chmln_colorize_done));
+                $elem.addClass(clearSel(_s.sel.chmln + _s._sel._colorize_done));
             }
 
             return item_colors;
         },
         actions = {
             stopColorize: function(s, $elements) {
-                var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln_colorize_done + ')');
+                var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln + _s._sel._colorize_done + ')');
 
                 if ($not_done_elements.length) {
                     getStopColorize({$elem: $not_done_elements, val: 1});
@@ -1356,38 +1479,129 @@
         s = extendSettings(getDefaultSettings(), s);
 
         var colorize = function () {
-            var $this = $(this),
-                item_s = extendSettings(s, { $img: $this.find(_s.sel.chmln_img).first() });
+                var $this = $(this),
+                    item_s = extendSettings(s, { $img: $this.find(_s.sel.chmln + _s._sel._img).first() });
 
-            if (item_s.$img.length) {
-                parseImageColors($this, item_s.$img[0].src, item_s,
-                    function(img_colors, $container, s) {
-                        var item_colors = colorizeElem($container, img_colors, s);
+                if (item_s.$img.length) {
+                    parseImageColors($this, item_s.$img[0].src, item_s,
+                        function(img_colors, $container, s) {
+                            var item_colors = colorizeElem($container, img_colors, s);
 
-                        if (typeof s.afterColorized === 'function') {
-                            s.afterColorized(item_colors, s);
+                            if (typeof s.afterColorized === 'function') {
+                                s.afterColorized(item_colors, s);
+                            }
+                        },
+                        function(img_src, $container, s) {
+                            if (typeof s.afterColorized === 'function') {
+                                s.afterColorized([], s);
+                            }
+
+                            logger('Failed to load image with url "' + img_src + '".', 'error');
                         }
-                    },
-                    function(img_src, $container, s) {
-                        if (typeof s.afterColorized === 'function') {
-                            s.afterColorized([], s);
-                        }
+                    );
+                } else {
+                    logger('Image not found. Each individual material must contain at least one image.', 'error');
+                }
+            },
+            renderElements = function(s, $elements) {
+                var no_elements = false;
 
-                        logger('Failed to load image with url "' + img_src + '".', 'error');
+                if (!$elements.length) {
+                    if (s.content) {
+                        var content_prefix = s.content_prefix,
+                            chmln_index = 0,
+                            $root = $(s.content.root_sel),
+                            wrapJQueryArr = function($elem) {
+                                return $('<div>').append($elem).children();
+                            },
+                            renderChildren = function(children) {
+                                var $children = false;
+
+                                if (children.length) {
+                                    var renderChild = function(c) {
+                                            return renderElem({elem: c});
+                                        };
+
+                                    $children = wrapJQueryArr(children.map(renderChild));
+                                }
+
+                                return $children;
+                            },
+                            renderElem = function(s) {
+                                s = s || {};
+
+                                s.elem = $.extend({}, {tag: 'div', class: '', content: '', no_colorize: false, children: []}, s.elem);
+                                s.type = s.type || 'element';
+
+                                if (s.type === 'element' && !s.elem.no_colorize) {
+                                    chmln_index += 1;
+                                }
+
+                                switch (s.type) {
+                                    case 'container':
+                                        s.elem.class += ' ' + content_prefix;
+
+                                        break;
+                                    case 'element':
+                                        if (!s.elem.no_colorize) {
+                                            s.elem.class += ' ' + content_prefix + chmln_index;
+                                        }
+
+                                        if (s.elem.tag === 'img') {
+                                            s.elem.class += ' ' + content_prefix + _s._sel._img;
+                                        }
+
+                                        break;
+                                    default:
+                                        logger([_s.actions.COLORIZECONTENT + '/renderElements/renderElem - unknown elem type!', s.type], 'warn');
+                                }
+
+                                var $elem = $('<' + s.elem.tag + '>');
+
+                                $elem.addClass(s.elem.class);
+                                $elem.html(s.elem.content);
+                                $elem.append(renderChildren(s.elem.children));
+
+                                if (s.elem.src && s.elem.tag === 'img') {
+                                    $elem.attr('src', s.elem.src);
+                                }
+
+                                return $elem;
+                            },
+                            renderItem = function(item) {
+                                var $item = renderElem({elem: item.container, type: 'container'});
+
+                                $item.append(renderChildren(item.elements));
+
+                                return $item;
+                            };
+
+                        $root = $('body'); // test
+
+                        if ($root.length && s.content.items && s.content.items.length) {
+                            $elements = wrapJQueryArr(s.content.items.map(renderItem));
+
+                            $root.append($elements);
+                        } else {
+                            no_elements = true;
+                        }
+                    } else {
+                        no_elements = true;
                     }
-                );
-            } else {
-                logger('Image not found. Each individual material must contain at least one image.', 'error');
-            }
-        };
+                }
 
-        if (!$elements.length) {
-            logger('Nothing found, probably, bad selector.', 'warn');
-        }
+                if (no_elements) {
+                    logger('No $elements found.', 'warn');
+                }
+
+                return $elements;
+            };
+
+        $elements = renderElements(s, $elements);
 
         $elements
-            .removeClass(clearSel(_s.sel.chmln_colorize_done))
-            .toggleClass(clearSel(_s.sel.chmln_async_colorize), !!s.async_colorize);
+            .removeClass(clearSel(_s.sel.chmln + _s._sel._colorize_done))
+            .toggleClass(clearSel(_s.sel.chmln + _s._sel._async_colorize), !!s.async_colorize);
 
         if (s.async_colorize) {
             var getNext = function($items) {
@@ -1426,6 +1640,8 @@
         } else {
             $elements.each(colorize);
         }
+
+        return $elements;
     };
 
     actions[_s.actions.GETIMAGECOLORS] = function(s, $elements) {
@@ -1471,6 +1687,8 @@
         if (validation.invalid.length) {
             logger(['Bad settings are fixed!', validation.invalid], 'warn');
         }
+
+        _s.sel.chmln = getChmlnSel(s);
 
         if (actions.hasOwnProperty(action)) {
             if (actions[action].result && typeof actions[action].result === 'function') {
