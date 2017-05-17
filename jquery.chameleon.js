@@ -162,7 +162,7 @@
                 dummy_back: _s.color.white.hex,
                 dummy_front: _s.color.black.hex,
                 content: {
-                    root_sel: 'body',
+                    root: 'body',
                     items: [
                         {
                             container: {
@@ -1510,7 +1510,7 @@
                     if (s.content) {
                         var content_prefix = s.content_prefix,
                             chmln_index = 0,
-                            $root = $(s.content.root_sel),
+                            $root = $(s.content.root),
                             wrapJQueryArr = function($elem) {
                                 return $('<div>').append($elem).children();
                             },
@@ -1575,8 +1575,6 @@
 
                                 return $item;
                             };
-
-                        $root = $('body'); // test
 
                         if ($root.length && s.content.items && s.content.items.length) {
                             $elements = wrapJQueryArr(s.content.items.map(renderItem));
