@@ -1284,65 +1284,70 @@
                     ctx.clearRect(0, 0, canvas.w, canvas.h);
                     ctx.drawImage(target_img, 0, 0, canvas.w, canvas.h);
 
-                    var pix = ctx.getImageData(0, 0, canvas.w, canvas.h).data,
-                        rgba_key = '';
+                    try {
+                        var pix = ctx.getImageData(0, 0, canvas.w, canvas.h).data,
+                            rgba_key = '';
 
-                    for (var i = 0; i < pix.length; i += 4) {
-                        if (pix[i + 3] > 0 && pix[i + 3] >= s.color_alpha) {
-                            rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
+                        for (var i = 0; i < pix.length; i += 4) {
+                            if (pix[i + 3] > 0 && pix[i + 3] >= s.color_alpha) {
+                                rgba_key = pix[i] + ',' + pix[i + 1] + ',' + pix[i + 2] + ',' + pix[i + 3];
 
-                            if (img_colors[rgba_key]) {
-                                img_colors[rgba_key] += 1
-                            } else {
-                                img_colors[rgba_key] = 1
-                            }
-                        }
-                    }
-
-                    var sorted_colors = sortArrByValue(img_colors),
-                        used_colors = [];
-
-                    img_colors = [];
-
-                    for (var rgba_string in sorted_colors) {
-                        if (sorted_colors.hasOwnProperty(rgba_string)) {
-                            var rgba_arr = rgba_string.split(','),
-                                is_valid = true;
-
-                            for (var l = 0; l < used_colors.length; l += 1) {
-                                var color_difference = 0,
-                                    used_rgba_arr = used_colors[l].split(',');
-
-                                for (var m = 0; m < 3; m += 1) {
-                                    color_difference += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
-                                }
-
-                                if (color_difference <= s.color_difference) {
-                                    is_valid = false;
-
-                                    break;
+                                if (img_colors[rgba_key]) {
+                                    img_colors[rgba_key] += 1
+                                } else {
+                                    img_colors[rgba_key] = 1
                                 }
                             }
+                        }
 
-                            if (is_valid) {
-                                used_colors.push(rgba_string);
-                                img_colors.push(colorObjectFromStr({color: rgbaToHexAlpha(rgba_arr).hex, alpha: rgba_arr[3]}));
+                        var sorted_colors = sortArrByValue(img_colors),
+                            used_colors = [];
+
+                        img_colors = [];
+
+                        for (var rgba_string in sorted_colors) {
+                            if (sorted_colors.hasOwnProperty(rgba_string)) {
+                                var rgba_arr = rgba_string.split(','),
+                                    is_valid = true;
+
+                                for (var l = 0; l < used_colors.length; l += 1) {
+                                    var color_difference = 0,
+                                        used_rgba_arr = used_colors[l].split(',');
+
+                                    for (var m = 0; m < 3; m += 1) {
+                                        color_difference += Math.abs(rgba_arr[m] - used_rgba_arr[m]);
+                                    }
+
+                                    if (color_difference <= s.color_difference) {
+                                        is_valid = false;
+
+                                        break;
+                                    }
+                                }
+
+                                if (is_valid) {
+                                    used_colors.push(rgba_string);
+                                    img_colors.push(colorObjectFromStr({color: rgbaToHexAlpha(rgba_arr).hex, alpha: rgba_arr[3]}));
+                                }
                             }
                         }
-                    }
 
-                    if (s.sort_colors) {
-                        img_colors = sortImageColors({type: s.sort_colors, colors: img_colors});
-                    }
+                        if (s.sort_colors) {
+                            img_colors = sortImageColors({type: s.sort_colors, colors: img_colors});
+                        }
 
-                    onImgLoad(img_colors, $container, s);
+                        onImgLoad(img_colors, $container, s);
+                    } catch (error) {
+                        toggleDebug({debug: true});
+                        onImgError([], error, $container, s, img_src);
+                    }
                 },
-                'error': function() {
-                    onImgError([], $container, s, img_src);
+                'error': function(e) {
+                    onImgError([], e, $container, s, img_src);
                 }
             });
 
-            $img.attr('src', img_src);
+            $img.attr('crossOrigin', 'anonymous').attr('src', img_src);
         },
         colorizeElem = function (item_elem, img_colors, s) {
             var $elem = item_elem || [],
@@ -1491,12 +1496,12 @@
                                 s.afterColorized(item_colors, s);
                             }
                         },
-                        function(img_src, $container, s) {
+                        function(img_colors, error, $container, s, img_src) {
                             if (typeof s.afterColorized === 'function') {
-                                s.afterColorized([], s);
+                                s.afterColorized(img_colors, s);
                             }
 
-                            logger('Failed to load image with url "' + img_src + '".', 'error');
+                            logger(['Failed to load image with url "' + img_src + '".', error], 'error');
                         }
                     );
                 } else {
@@ -1564,6 +1569,10 @@
 
                                 if (s.elem.src && s.elem.tag === 'img') {
                                     $elem.attr('src', s.elem.src);
+                                }
+
+                                if (s.elem.id) {
+                                    $elem.attr('id', s.elem.id);
                                 }
 
                                 return $elem;
