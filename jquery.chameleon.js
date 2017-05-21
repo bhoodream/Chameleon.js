@@ -161,70 +161,7 @@
                 data_colors: false,
                 dummy_back: _s.color.white.hex,
                 dummy_front: _s.color.black.hex,
-                content: {
-                    root: 'body',
-                    items: [
-                        {
-                            container: {
-                                'tag': 'div'
-                            },
-                            elements: [
-                                {
-                                    'tag': 'div',
-                                    'class': 'chmln__wrapper _clearfix',
-                                    'content': '',
-                                    'no_colorize': true,
-                                    'children': [
-                                        {
-                                            'tag': 'div',
-                                            'class': 'chmln__wrapper _example-text',
-                                            'content': '',
-                                            'no_colorize': true,
-                                            'children': [
-                                                {
-                                                    'tag': 'h2',
-                                                    'class': 'chmln__title',
-                                                    'content': 'Chameleon Title'
-                                                },
-                                                {
-                                                    'tag': 'blockquote',
-                                                    'class': 'chmln__blockquote',
-                                                    'content': 'Chameleon Blockquote',
-                                                    'children': [
-                                                        {
-                                                            'tag': 'cite',
-                                                            'class': 'chmln__cite',
-                                                            'content': 'Chameleon Blockquote Cite'
-                                                        }
-                                                    ]
-                                                },
-                                                {
-                                                    'tag': 'p',
-                                                    'class': 'chmln__paragraph',
-                                                    'content': 'Chameleon Paragraph'
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            'tag': 'div',
-                                            'class': 'chmln__wrapper _example-img',
-                                            'content': '',
-                                            'no_colorize': true,
-                                            'children': [
-                                                {
-                                                    'tag': 'img',
-                                                    'content': '',
-                                                    'no_colorize': true,
-                                                    'src': 'data:image/gif;base64,R0lGODlhAQABAIAAAAUEBAAAACwAAAAAAQABAAACAkQBADs='
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                }
-                            ]
-                        }
-                    ]
-                },
+                content: {},
                 rules: {
                     'background': {
                         'prop': 'background-color'
@@ -267,12 +204,9 @@
         getChmlnSel = function(s) {
             return '.' + (s.content_prefix || _s.content_prefix);
         },
-        extendSettings = function(s1, s2) {
-            return $.extend({}, s1 || {}, s2 || {});
-        },
-        isSettingAllowed = function(prop, val) {
+        isSettingAllowed = function(val, prop) {
             var allowed_values = _s.allowed_values,
-                fixValCase = function(allowed_values, prop, val) {
+                fixValCase = function(allowed_values, val, prop) {
                     var case_fixed_val = false;
 
                     if (allowed_values.hasOwnProperty(prop)) {
@@ -289,20 +223,20 @@
                 validated_item = {is_allowed: true};
 
             if (allowed_values.hasOwnProperty(prop)) {
-                var caseFixedVal = fixValCase(allowed_values, prop, val);
+                var caseFixedVal = fixValCase(allowed_values, val, prop);
 
                 if (caseFixedVal !== val) {
                     validated_item = {
                         is_allowed: true,
                         fixed_val: caseFixedVal,
-                        is_valid: false,
+                        valid: false,
                         msg: 'Setting "' + prop + '" with value "' + val + '" case fixed to "' + caseFixedVal + '".'
                     };
                 } else if (allowed_values[prop].indexOf(val) === -1) {
                     validated_item = {
                         is_allowed: false,
                         fixed_val: allowed_values[prop][0],
-                        is_valid: false,
+                        valid: false,
                         msg: 'Not allowed value for "' + prop + '". You can use only: [' + allowed_values[prop].join(', ') + '].'
                     };
                 }
@@ -319,7 +253,7 @@
 
             return is_empty;
         },
-        isSettingCanBeIgnored = function(prop, val) {
+        isSettingCanBeIgnored = function(val, prop) {
             var can_be_ignored = ['source_color'];
 
             return {
@@ -422,69 +356,98 @@
 
                     return _s.color.black.hex;
                 },
-                fixVal = function(val, is_valid, fixCB) {
-                    var fixed_val = val;
+                beforeFix = function(val, prop) {
+                    switch (prop) {
+                        case 'content_prefix':
+                            val = _s.content_prefix;
 
+                            break;
+                        default:
+                            // Silence
+                    }
+
+                    return val;
+                },
+                afterValidation = function(val, prop, validated_item) {
+                    if (validated_item.valid) {
+                        switch (prop) {
+                            case 'content_prefix':
+                                var new_val = String(val).replace(/\s+/g, '');
+
+                                if (val !== new_val) {
+                                    validated_item.valid = false;
+                                    validated_item.fixed_val = new_val;
+                                    validated_item.msg =
+                                        'afterValidation - value "' + val + '" of "' + prop + '" was fixed! ' +
+                                        'New value is "' + new_val + '".'
+                                }
+
+                                break;
+                            default:
+                            // Silence
+                        }
+
+                    }
+
+                    return validated_item;
+                },
+                fixVal = function(val, prop, is_valid, fixCB) {
                     if (typeof fixCB === 'function' && !is_valid) {
-                        fixed_val = fixCB(val);
+                        val = fixCB(beforeFix(val, prop));
                     }
 
                     return {
-                        is_valid: is_valid,
-                        fixed_val: fixed_val
+                        valid: is_valid,
+                        fixed_val: val
                     };
                 },
                 validation = {
-                    numberValidation: function(val, name) {
+                    numberValidation: function(val, prop) {
                         val = parseFloat(val);
 
                         var is_valid = true;
 
-                        if (_s.limits.hasOwnProperty(name)) {
-                            is_valid = !isNaN(val) && _s.limits[name].min <= val && val <= _s.limits[name].max;
+                        if (_s.limits.hasOwnProperty(prop)) {
+                            is_valid = !isNaN(val) && _s.limits[prop].min <= val && val <= _s.limits[prop].max;
                         } else {
-                            logger('validateSettings/numberValidation - limits for number setting "' + name + '" are missing!', 'warn');
+                            logger('validateSettings/numberValidation - limits for number setting "' + prop + '" are missing!', 'warn');
                         }
 
-                        return fixVal(val, is_valid, function(v) {
+                        return fixVal(val, prop, is_valid, function(v) {
                             if (isNaN(v)) {
-                                v = _s.limits[name].min;
+                                v = _s.limits[prop].min;
                             } else {
-                                v = Math.min(Math.max(v, _s.limits[name].min), _s.limits[name].max);
+                                v = Math.min(Math.max(v, _s.limits[prop].min), _s.limits[prop].max);
                             }
 
                             return v;
                         });
                     },
                     stringValidation: function(val, prop) {
-                        return fixVal(val, typeof val === 'string', function(v) {
-                            if (prop === 'content_prefix') {
-                                v = _s.content_prefix;
-                            }
-
+                        return fixVal(val, prop, typeof val === 'string', function(v) {
                             return String(v);
                         });
                     },
-                    colorValidation: function(val) {
-                        return fixVal(val, isColorValid(val), fixColor);
+                    colorValidation: function(val, prop) {
+                        return fixVal(val, prop, isColorValid(val), fixColor);
                     },
-                    booleanValidation: function(val) {
-                        return fixVal(val, typeof val === 'boolean', function(v) {
+                    booleanValidation: function(val, prop) {
+                        return fixVal(val, prop, typeof val === 'boolean', function(v) {
                             return !!v;
                         });
                     },
-                    arrayValidation: function(val) {
-                        return fixVal(val, Array.isArray(val), function(v) {
+                    arrayValidation: function(val, prop) {
+                        return fixVal(val, prop, Array.isArray(val), function(v) {
                             return [];
                         });
                     },
-                    objectValidation: function(val) {
-                        return fixVal(val, typeof val === 'object', function(v) {
+                    objectValidation: function(val, prop) {
+                        return fixVal(val, prop, typeof val === 'object', function(v) {
                             return {};
                         });
                     },
-                    functionValidation: function(val) {
-                        return fixVal(val, typeof val === 'function', function(v) {
+                    functionValidation: function(val, prop) {
+                        return fixVal(val, prop, typeof val === 'function', function(v) {
                             return function() {};
                         });
                     }
@@ -514,7 +477,7 @@
                     });
 
                     if (type) {
-                        var ignore_setting = isSettingCanBeIgnored(prop, val);
+                        var ignore_setting = isSettingCanBeIgnored(val, prop);
 
                         if (ignore_setting.ignore) {
                             return ignore_setting.result();
@@ -522,14 +485,16 @@
 
                         var validated_item = $.extend(
                             $.extend(validation[type + 'Validation'](val, prop), {msg: msg}),
-                            isSettingAllowed(prop, val)
+                            isSettingAllowed(val, prop)
                         );
+
+                        validated_item = afterValidation(val, prop, validated_item);
 
                         return {
                             prop: prop,
                             val: val,
                             fixed_val: validated_item.fixed_val,
-                            valid: validated_item.is_valid,
+                            valid: validated_item.valid,
                             msg: validated_item.msg
                         };
                     }
@@ -1481,11 +1446,11 @@
         };
 
     actions[_s.actions.COLORIZECONTENT] = function(s, $elements) {
-        s = extendSettings(getDefaultSettings(), s);
+        s = $.extend({}, getDefaultSettings(), s);
 
         var colorize = function () {
                 var $this = $(this),
-                    item_s = extendSettings(s, { $img: $this.find(_s.sel.chmln + _s._sel._img).first() });
+                    item_s = $.extend({}, s, { $img: $this.find(_s.sel.chmln + _s._sel._img).first() });
 
                 if (item_s.$img.length) {
                     parseImageColors($this, item_s.$img[0].src, item_s,
@@ -1535,10 +1500,10 @@
                             renderElem = function(s) {
                                 s = s || {};
 
-                                s.elem = $.extend({}, {tag: 'div', class: '', content: '', no_colorize: false, children: []}, s.elem);
+                                s.elem = $.extend({}, {tag: 'div', class: '', content: '', ignore: false, children: []}, s.elem);
                                 s.type = s.type || 'element';
 
-                                if (s.type === 'element' && !s.elem.no_colorize) {
+                                if (s.type === 'element' && !s.elem.ignore) {
                                     chmln_index += 1;
                                 }
 
@@ -1548,11 +1513,11 @@
 
                                         break;
                                     case 'element':
-                                        if (!s.elem.no_colorize) {
+                                        if (!s.elem.ignore) {
                                             s.elem.class += ' ' + content_prefix + chmln_index;
                                         }
 
-                                        if (s.elem.tag === 'img') {
+                                        if (s.elem.tag === 'img' && s.elem.main_img) {
                                             s.elem.class += ' ' + content_prefix + _s._sel._img;
                                         }
 
@@ -1581,6 +1546,7 @@
                                 var $item = renderElem({elem: item.container, type: 'container'});
 
                                 $item.append(renderChildren(item.elements));
+                                chmln_index = 0;
 
                                 return $item;
                             };
@@ -1655,10 +1621,7 @@
         var handleElement = function() {
             var $img = $(this);
 
-            s = extendSettings(getDefaultSettings({
-                settings_type: _s.actions.GETIMAGECOLORS,
-                settings_values: {$img: $img}
-            }), s);
+            s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS, settings_values: {$img: $img} }), s);
 
             if ($img[0].nodeName.toLowerCase() === 'img') {
                 parseImageColors($img.parent(), $img.attr('src'), s, s.onGetColorsSuccess, s.onGetColorsError);
