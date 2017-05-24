@@ -161,7 +161,53 @@
                 data_colors: false,
                 dummy_back: _s.color.white.hex,
                 dummy_front: _s.color.black.hex,
-                content: {},
+                content: {
+                    root: 'body',
+                    items: [
+                        {
+                            container: {
+                                'tag': 'div',
+                                'class': 'chmln'
+                            },
+                            elements: [
+                                {
+                                    'tag': 'div',
+                                    'class': 'chmln-wrapper',
+                                    'ignore': true,
+                                    'children': [
+                                        {
+                                            'tag': 'h2',
+                                            'class': 'chmln1',
+                                            'content': 'Lorem ipsum'
+                                        },
+                                        {
+                                            'tag': 'blockquote',
+                                            'class': 'chmln2',
+                                            'content': 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                                            'children': [
+                                                {
+                                                    'tag': 'cite',
+                                                    'class': 'chmln3',
+                                                    'content': 'Duis aute irure.'
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            'tag': 'p',
+                                            'class': 'chmln4',
+                                            'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
+                                        }
+                                    ]
+                                },
+                                {
+                                    'tag': 'img',
+                                    'main_img': true,
+                                    'src': 'https://i.imgur.com/Qy0TaIF.gif'
+                                }
+                            ]
+                        }
+                    ]
+                },
                 rules: {
                     'background': {
                         'prop': 'background-color'
@@ -170,9 +216,9 @@
                         'prop': 'color'
                     }
                 },
-                afterColorized: function() {},
-                beforeAsyncColorized: function() {},
-                afterAsyncColorized: function() {}
+                afterColorized: function(item_colors, s) {},
+                beforeAsyncColorized: function(s) {},
+                afterAsyncColorized: function(s) {}
             };
 
             default_s[_s.actions.GETIMAGECOLORS] = {
@@ -182,8 +228,8 @@
                 color_difference: _s.color.difference,
                 canvas_side: _s.canvas.side,
                 debug: false,
-                onGetColorsSuccess: function() {},
-                onGetColorsError: function() {}
+                onGetColorsSuccess: function(img_colors, $container, s) {},
+                onGetColorsError: function(img_colors, error, $container, s, img_src) {}
             };
 
             default_s[_s.actions.WRAPCOLOR] = {
@@ -1503,6 +1549,8 @@
                                 s.elem = $.extend({}, {tag: 'div', class: '', content: '', ignore: false, children: []}, s.elem);
                                 s.type = s.type || 'element';
 
+                                var ignore_tags = ['img'];
+
                                 if (s.type === 'element' && !s.elem.ignore) {
                                     chmln_index += 1;
                                 }
@@ -1513,7 +1561,7 @@
 
                                         break;
                                     case 'element':
-                                        if (!s.elem.ignore) {
+                                        if (!s.elem.ignore && ignore_tags.indexOf(s.elem.tag) === -1) {
                                             s.elem.class += ' ' + content_prefix + chmln_index;
                                         }
 
@@ -1528,8 +1576,8 @@
 
                                 var $elem = $('<' + s.elem.tag + '>');
 
-                                $elem.addClass(s.elem.class);
-                                $elem.html(s.elem.content);
+                                $elem.addClass(s.elem.class || '');
+                                $elem.html(s.elem.content || '');
                                 $elem.append(renderChildren(s.elem.children));
 
                                 if (s.elem.src && s.elem.tag === 'img') {
