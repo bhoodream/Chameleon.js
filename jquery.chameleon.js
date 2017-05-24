@@ -178,24 +178,24 @@
                                         {
                                             'tag': 'h2',
                                             'class': 'chmln1',
-                                            'content': 'Lorem ipsum'
+                                            'content': 'The Metamorphosis'
                                         },
                                         {
                                             'tag': 'blockquote',
                                             'class': 'chmln2',
-                                            'content': 'Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+                                            'content': 'He was a tool of the boss, without brains or backbone.',
                                             'children': [
                                                 {
                                                     'tag': 'cite',
                                                     'class': 'chmln3',
-                                                    'content': 'Duis aute irure.'
+                                                    'content': 'Franz Kafka'
                                                 }
                                             ]
                                         },
                                         {
                                             'tag': 'p',
                                             'class': 'chmln4',
-                                            'content': 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'
+                                            'content': 'The Metamorphosis is a seminal work of fiction first published in 1915 by Franz Kafka, and has come to be appreciated and studied the world over for it’s power, insight and brutal simplicity.'
                                         }
                                     ]
                                 },
