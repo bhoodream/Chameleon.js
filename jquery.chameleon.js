@@ -35,7 +35,6 @@
                 difference: 120,
                 readable_lum_diff: 5,
                 readable_alpha: 0.5,
-                contrast_alpha: 0.3,
                 lum_step: 0.05,
                 default_format: 'hex'
             },
@@ -248,7 +247,7 @@
             return {};
         },
         getChmlnSel = function(s) {
-            return '.' + (s.content_prefix || _s.content_prefix);
+            return '.' + (s && s.content_prefix ? s.content_prefix : _s.content_prefix);
         },
         isSettingAllowed = function(val, prop) {
             var allowed_values = _s.allowed_values,
@@ -1192,9 +1191,7 @@
                         $color_elem = $('<span class="chmln__colors-elem">'),
                         $source_color_elem = $('<span class="chmln__colors-elem _source">'),
                         $adapt_arrow = $('<span class="chmln__colors-arrow">'),
-                        is_color_adapted =
-                            s.source_color.hex &&
-                            (s.source_color.hex !== s.color.hex || s.source_color.alpha !== s.color.alpha),
+                        is_color_adapted = s.source_color.hex && (s.source_color.hex !== s.color.hex || s.source_color.alpha !== s.color.alpha),
                         colorElem = function (s) {
                             var color = getColorString({color: s.color, format: s.format});
 
@@ -1206,7 +1203,7 @@
                                         '<span class="chmln__colors-elem-text">' + s.html + '</span>' +
                                         '<div class="chmln__colors-elem-overlay" style="opacity: ' + (1 - s.color.alpha) + ';"></div>';
                                     color = addHashToHex(s.color.hex);
-                                    s.color = s.color.alpha > _s.color.contrast_alpha ? s.color : _s.color.white.hex;
+                                    s.color = s.color.alpha > _s.color.readable_alpha ? s.color : _s.color.white.hex;
                                 }
 
                                 s.$elem.css({
@@ -1551,10 +1548,6 @@
 
                                 var ignore_tags = ['img'];
 
-                                if (s.type === 'element' && !s.elem.ignore) {
-                                    chmln_index += 1;
-                                }
-
                                 switch (s.type) {
                                     case 'container':
                                         s.elem.class += ' ' + content_prefix;
@@ -1562,6 +1555,7 @@
                                         break;
                                     case 'element':
                                         if (!s.elem.ignore && ignore_tags.indexOf(s.elem.tag) === -1) {
+                                            chmln_index += 1;
                                             s.elem.class += ' ' + content_prefix + chmln_index;
                                         }
 
@@ -1591,11 +1585,32 @@
                                 return $elem;
                             },
                             renderItem = function(item) {
-                                var $item = renderElem({elem: item.container, type: 'container'});
+                                var $item;
 
-                                $item.append(renderChildren(item.elements));
+                                if (typeof item === 'string') {
+                                    $item = $(item);
+                                    
+                                    var item_content_prefix = $item.attr('data-content_prefix');
+                                    
+                                    if (item_content_prefix && item_content_prefix !== content_prefix) {
+                                        $item.addClass(content_prefix);
+                                        $item.find('.' + item_content_prefix + _s._sel._img).addClass(content_prefix + _s._sel._img);
+                                        
+                                        var i = 1,
+                                            $content_item = $item.find('.' + item_content_prefix + i);
+                                        
+                                        while ($content_item.length) {
+                                            $content_item.addClass(content_prefix + i++);
+                                            $content_item = $item.find('.' + item_content_prefix + i);
+                                        }
+                                    }
+                                } else {
+                                    $item = renderElem({elem: item.container, type: 'container'});
+                                    $item.append(renderChildren(item.elements));
+                                }
+
                                 chmln_index = 0;
-
+                                
                                 return $item;
                             };
 
