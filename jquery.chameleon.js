@@ -629,13 +629,15 @@
             return is_valid;
         },
         limitRGBAValue = function(val) {
-            return val ?
-                Math.max(
-                    _s.limits.color_rgba.min,
-                    Math.min(
-                        _s.limits.color_rgba.max,
-                        parseInt(String(val).slice(0, 3), 10))
-                ) : 0;
+            val = parseInt(String(val).slice(0, 3), 10);
+            
+            if (isNaN(val)) {
+                val = _s.limits.color_rgba.min;
+            } else {
+                val = Math.max(_s.limits.color_rgba.min, Math.min(_s.limits.color_rgba.max, val));
+            }
+            
+            return val;
         },
         fixColor = function(c) {
             if (c) {
