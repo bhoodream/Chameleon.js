@@ -192,10 +192,10 @@
                     ]
                 },
                 rules: {
-                    'background': {
+                    'container': {
                         'prop': 'background-color'
                     },
-                    'elem': {
+                    'element': {
                         'prop': 'color'
                     }
                 },
@@ -364,12 +364,12 @@
                         alpha: clone_color[3]
                     };
                 }
-
+    
                 r = limitRGBAValue(s.color.r);
                 g = limitRGBAValue(s.color.g);
                 b = limitRGBAValue(s.color.b);
-                alpha = s.color.alpha || s.alpha || _s.limits.color_alpha.max;
-                hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
+                alpha = limitRGBAValue(s.color.alpha || s.alpha || _s.limits.color_alpha.max);
+                hex = s.color.hex || rgbaToHexAlpha([r, g, b, alpha]).hex;
             } else {
                 color = colorStrToHexAlpha(s.color);
 
@@ -413,13 +413,17 @@
             }
 
             // optimization: less function calls
-            if (!isUndefined(alpha) && alpha < _s.limits.color_alpha.max) {
+            if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
                 alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
             } else {
                 alpha = 1;
             }
 
-            return {hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val};
+            return {
+                hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val,
+                rgb: 'rgb(' + r + ',' + g + ',' + b + ')',
+                rgba: 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')'
+            };
         },
         getRGBStrFromObj = function(c) {
             return c ? 'rgb(' + [c.r, c.g, c.b].join(',') + ')' : '';
@@ -976,11 +980,11 @@
 
             if ($elem.length) {
                 var marks = [],
-                    background = img_colors[0] || colorObjectFromStr({color: s.dummy_back}),
+                    main_color = img_colors[0] || colorObjectFromStr({color: s.dummy_back}),
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
-                item_colors.push(background);
+                item_colors.push(main_color);
 
                 while (cur_marks.length > 0) {
                     marks.push(cur_marks);
@@ -996,7 +1000,7 @@
                     var adapted_colors =
                         img_colors
                             .slice(1, mark_amt_affix)
-                            .map(makeColorReadable.bind(this, background, s.color_adapt_limit));
+                            .map(makeColorReadable.bind(this, main_color, s.color_adapt_limit));
 
                     item_colors = item_colors.concat(adapted_colors);
                 } else {
@@ -1024,10 +1028,10 @@
                         }
                     };
 
-                    applyRules(s.rules.background, $elem, background, 'background-color');
+                    applyRules(s.rules.container, $elem, main_color, 'background-color');
 
                     for (var i = 0; i < marks.length; i += 1) {
-                        applyRules(s.rules.elem, marks[i], item_colors[i + 1]);
+                        applyRules(s.rules.element, marks[i], item_colors[i + 1]);
 
                         $.each(marks[i], function(index, m) {
                             var node_name = m.nodeName.toLowerCase();
@@ -1051,7 +1055,7 @@
 
                     $.each(img_colors, function (index, item) {
                         if (index === 0) {
-                            $colors_container.append(wrapColor({color: background, color_format: s.color_format}));
+                            $colors_container.append(wrapColor({color: main_color, color_format: s.color_format}));
                         } else {
                             if (item_colors[index]) {
                                 $colors_container.append(wrapColor({color: item_colors[index], source_color: item, color_format: s.color_format}));
@@ -1189,8 +1193,9 @@
                                                 $content_item = $item.find('.' + item_content_prefix + i);
                                     
                                             while ($content_item.length) {
-                                                $content_item.addClass(content_prefix + i++);
+                                                $content_item.addClass(content_prefix + i);
                                                 $content_item = $item.find('.' + item_content_prefix + i);
+                                                i += 1;
                                             }
                                         }
                                     } else {
@@ -1290,6 +1295,29 @@
                 getStopColorize({$elem: $not_done_elements, val: 1});
             }
         },
+        decolorize = function(s, $elements) {
+            s = $.extend({}, getDefaultSettings(), s);
+            
+            $.each($elements, function() {
+                var $element = $(this);
+    
+                $element
+                    .css(s.rules.container.prop, '')
+                    .removeClass(s.content_prefix + _s._sel._colorize_done)
+                    .removeClass(s.content_prefix + _s._sel._async_colorize)
+                    .find('.' + s.content_prefix + _s._sel._canvas)
+                    .remove();
+    
+                var i = 1,
+                    $content_item = $element.find('.' + s.content_prefix + i);
+                
+                while ($content_item.length) {
+                    $content_item.css(s.rules.element.prop, '');
+                    $content_item = $element.find('.' + s.content_prefix + i);
+                    i += 1;
+                }
+            });
+        },
         skipValidation = function() {
             _f.skip_validation = true;
             
@@ -1304,6 +1332,7 @@
     
     var actions = {
         stopColorize: stopColorize,
+        decolorize: decolorize,
         get_s: {result: get_s},
         skipValidation: {result: skipValidation},
         getDefaultSettings: {result: getDefaultSettings},
