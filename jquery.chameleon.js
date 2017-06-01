@@ -17,7 +17,7 @@
     var _s = {
             content_prefix: 'chmln',
             actions: {
-                COLORIZECONTENT: 'colorizeContent',
+                COLORIZE: 'colorize',
                 GETIMAGECOLORS: 'getImageColors',
                 WRAPCOLOR: 'wrapColor'
             },
@@ -125,10 +125,10 @@
         getDefaultSettings = function(s) {
             s = s || {};
 
-            var type = s.settings_type || _s.actions.COLORIZECONTENT,
+            var type = s.settings_type || _s.actions.COLORIZE,
                 default_s = {};
 
-            default_s[_s.actions.COLORIZECONTENT] = {
+            default_s[_s.actions.COLORIZE] = {
                 content_prefix: _s.content_prefix,
                 color_format: 'hex',
                 color_alpha: _s.color.alpha,
@@ -347,7 +347,7 @@
 
             return Math.min(max_percent, val);
         },
-        colorObjectFromStr = function(s) {
+        colorObject = function(s) {
             var r_index = 0,
                 g_index = 2,
                 b_index = 4,
@@ -369,7 +369,7 @@
                 g = limitRGBAValue(s.color.g);
                 b = limitRGBAValue(s.color.b);
                 alpha = limitRGBAValue(s.color.alpha || s.alpha || _s.limits.color_alpha.max);
-                hex = s.color.hex || rgbaToHexAlpha([r, g, b, alpha]).hex;
+                hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
             } else {
                 color = colorStrToHexAlpha(s.color);
 
@@ -411,8 +411,7 @@
                     }
                 }
             }
-
-            // optimization: less function calls
+            
             if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
                 alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
             } else {
@@ -422,14 +421,11 @@
             return {
                 hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val,
                 rgb: 'rgb(' + r + ',' + g + ',' + b + ')',
-                rgba: 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')'
+                rgba: 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')',
+                lum: function(multiplier) {
+                    return changeColorLum(this, multiplier);
+                }
             };
-        },
-        getRGBStrFromObj = function(c) {
-            return c ? 'rgb(' + [c.r, c.g, c.b].join(',') + ')' : '';
-        },
-        getRGBAStrFromObj = function(c) {
-            return c ? 'rgba(' + [c.r, c.g, c.b, (isUndefined(c.alpha) ? 1 : c.alpha)].join(',') + ')' : '';
         },
         rgbaToHexAlpha = function(color) {
             var hex = '',
@@ -515,8 +511,8 @@
             new_color.r = Math.round(Math.min(Math.max(0, r + (r * multiplier)), 255));
             new_color.g = Math.round(Math.min(Math.max(0, g + (g * multiplier)), 255));
             new_color.b = Math.round(Math.min(Math.max(0, b + (b * multiplier)), 255));
-            new_color.hex = rgbaToHexAlpha(new_color).hex;
-
+            new_color = colorObject({color: new_color});
+            
             return new_color;
         },
         findReadableColor = function (back_color, front_color, lum_dir, limit, new_alpha) {
@@ -537,15 +533,15 @@
             }
 
             return try_num > limit ?
-                colorObjectFromStr({color: lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex}) :
+                colorObject({color: lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex}) :
                 front_color;
         },
         whiteOrBlackHex = function(color) {
             if (typeof color === 'string') {
-                color = colorObjectFromStr({color: color});
+                color = colorObject({color: color});
             }
 
-            var diff_with_black = lumDiff(color, colorObjectFromStr({color: _s.color.black.hex}));
+            var diff_with_black = lumDiff(color, colorObject({color: _s.color.black.hex}));
 
             return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black.hex : _s.color.white.hex;
         },
@@ -554,7 +550,7 @@
                 lum_dir = 1;
 
             if (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
-                if (lumDiff(back_color, colorObjectFromStr({color: _s.color.black.hex})) >= _s.color.readable_lum_diff) {
+                if (lumDiff(back_color, colorObject({color: _s.color.black.hex})) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
                 }
 
@@ -751,15 +747,13 @@
             s.format = s.format || _s.color.default_format;
 
             if (typeof s.color === 'string') {
-                s.color = colorObjectFromStr(s);
+                s.color = colorObject(s);
             }
 
             var format = {
-                'hex': function(c) {
-                    return addHashToHex(c.hex);
-                },
-                'rgb': getRGBStrFromObj,
-                'rgba': getRGBAStrFromObj
+                'hex': function(c) { return addHashToHex(c.hex); },
+                'rgb': function (c) { return c.rgb; },
+                'rgba': function (c) { return c.rgba; }
             };
 
             if (format.hasOwnProperty(s.format)) {
@@ -779,7 +773,7 @@
                         var $colors = null;
 
                         if (isColorValid(s)) {
-                            $colors = wrapColor(colorObjectFromStr({color: s}), $elements, extra_s);
+                            $colors = wrapColor(colorObject({color: s}), $elements, extra_s);
                         } else {
                             $.each(s, function (i, c) {
                                 c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
@@ -800,8 +794,8 @@
                     s = {color: s, color_format: extra_s_format};
                 }
 
-                s.color = colorObjectFromStr({color: s.color});
-                s.source_color = colorObjectFromStr({color: s.source_color});
+                s.color = colorObject({color: s.color});
+                s.source_color = colorObject({color: s.source_color});
                 s.color_format = s.color_format || _s.color.default_format;
 
                 if (s.color) {
@@ -953,7 +947,7 @@
 
                                 if (is_valid) {
                                     used_colors.push(rgba_string);
-                                    img_colors.push(colorObjectFromStr({color: rgbaToHexAlpha(rgba_arr).hex, alpha: rgba_arr[3]}));
+                                    img_colors.push(colorObject({color: rgbaToHexAlpha(rgba_arr).hex, alpha: rgba_arr[3]}));
                                 }
                             }
                         }
@@ -980,7 +974,7 @@
 
             if ($elem.length) {
                 var marks = [],
-                    main_color = img_colors[0] || colorObjectFromStr({color: s.dummy_back}),
+                    main_color = img_colors[0] || colorObject({color: s.dummy_back}),
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
@@ -993,7 +987,7 @@
                 }
 
                 while (img_colors.length < mark_amt_affix) {
-                    img_colors.push(colorObjectFromStr({color: s.dummy_front}));
+                    img_colors.push(colorObject({color: s.dummy_front}));
                 }
 
                 if (s.adapt_colors) {
@@ -1010,34 +1004,34 @@
                 }
 
                 if (s.apply_colors) {
-                    var applyRules = function(rule, $elem, color, default_prop) {
+                    var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
 
                         if (rule) {
                             if (typeof rule === 'function') {
-                                rule($elem, color);
+                                rule($elem, color, color_index, img_colors);
                             } else if (typeof rule === 'object') {
                                 if (Array.isArray(rule)) {
-                                    $.each(rule, function(i, r) { applyRules(r, $elem, color); });
+                                    $.each(rule, function(i, r) { applyRules(r, $elem, color, color_index); });
                                 } else {
-                                    $elem.css(rule.prop || default_prop, getRGBAStrFromObj(color));
+                                    $elem.css(rule.prop || default_prop, color.rgba);
                                 }
                             } else {
-                                $elem.css(default_prop, getRGBAStrFromObj(color));
+                                $elem.css(default_prop, color.rgba);
                             }
                         }
                     };
 
-                    applyRules(s.rules.container, $elem, main_color, 'background-color');
+                    applyRules(s.rules.container, $elem, main_color, 0, 'background-color');
 
                     for (var i = 0; i < marks.length; i += 1) {
-                        applyRules(s.rules.element, marks[i], item_colors[i + 1]);
+                        applyRules(s.rules.element, marks[i], item_colors[i + 1], i + 1);
 
                         $.each(marks[i], function(index, m) {
                             var node_name = m.nodeName.toLowerCase();
 
                             if (s.rules.hasOwnProperty(node_name)) {
-                                applyRules(s.rules[node_name], $(m), item_colors[i + 1]);
+                                applyRules(s.rules[node_name], $(m), item_colors[i + 1], i + 1);
                             }
                         });
                     }
@@ -1081,7 +1075,7 @@
 
             return item_colors;
         },
-        colorizeContent = function(s, $elements) {
+        colorize = function(s, $elements) {
             s = $.extend({}, getDefaultSettings(), s);
     
             var colorize = function () {
@@ -1158,7 +1152,7 @@
                                     
                                             break;
                                         default:
-                                            logger([_s.actions.COLORIZECONTENT + '/renderElements/renderElem - unknown elem type!', s.type], 'warn');
+                                            logger([_s.actions.COLORIZE + '/renderElements/renderElem - unknown elem type!', s.type], 'warn');
                                     }
                             
                                     var $elem = $('<' + s.elem.tag + '>');
@@ -1325,7 +1319,7 @@
         };
     
     _s.allowed_values = {
-        'settings_type': [_s.actions.COLORIZECONTENT, _s.actions.GETIMAGECOLORS, _s.actions.WRAPCOLOR],
+        'settings_type': [_s.actions.COLORIZE, _s.actions.GETIMAGECOLORS, _s.actions.WRAPCOLOR],
         'sort_colors': ['primary', 'hue'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
@@ -1336,13 +1330,13 @@
         get_s: {result: get_s},
         skipValidation: {result: skipValidation},
         getDefaultSettings: {result: getDefaultSettings},
-        colorObjectFromStr: {result: colorObjectFromStr},
+        colorObject: {result: colorObject},
         sortColors: {result: sortImageColors},
         isColorValid: {result: isColorValid},
         fixColor: {result: fixColor}
     };
 
-    actions[_s.actions.COLORIZECONTENT] = colorizeContent;
+    actions[_s.actions.COLORIZE] = colorize;
     actions[_s.actions.GETIMAGECOLORS] = getImageColors;
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
 
@@ -1352,7 +1346,7 @@
             extra_s = Array.prototype.slice.call(arguments, 2);
     
         settings = is_action_passed ? settings : action;
-        action = is_action_passed ? action : _s.actions.COLORIZECONTENT;
+        action = is_action_passed ? action : _s.actions.COLORIZE;
         settings = validateSettings(settings, action, extra_s);
         
         setChmlnSel(settings);
