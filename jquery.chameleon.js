@@ -19,7 +19,8 @@
             actions: {
                 COLORIZE: 'colorize',
                 GETIMAGECOLORS: 'getImageColors',
-                WRAPCOLOR: 'wrapColor'
+                WRAPCOLOR: 'wrapColor',
+                COLOROBJECT: 'colorObject'
             },
             color: {
                 black: {
@@ -222,6 +223,12 @@
                 source_color: _s.color.white.hex,
                 debug: false
             };
+            
+            default_s[_s.actions.COLOROBJECT] = {
+                alpha: _s.limits.alpha.max,
+                color: _s.color.black.hex,
+                debug: false
+            };
 
             if (default_s.hasOwnProperty(type)) {
                 return $.extend({}, default_s[type], s.settings_values || {});
@@ -369,7 +376,7 @@
                 r = limitRGBAValue(s.color.r);
                 g = limitRGBAValue(s.color.g);
                 b = limitRGBAValue(s.color.b);
-                alpha = limitRGBAValue(s.color.alpha || s.alpha || _s.limits.color_alpha.max);
+                alpha = limitRGBAValue(s.color.alpha || s.color.a || s.alpha || _s.limits.color_alpha.max);
                 hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
             } else {
                 color = colorStrToHexAlpha(s.color);
@@ -379,7 +386,7 @@
                 }
 
                 hex = color.hex;
-                alpha = s.alpha || color.alpha;
+                alpha = color.alpha || s.alpha;
                 r = parseInt(hex.substr(r_index, 2), 16);
                 g = parseInt(hex.substr(g_index, 2), 16);
                 b = parseInt(hex.substr(b_index, 2), 16);
@@ -630,7 +637,7 @@
             return is_valid;
         },
         limitRGBAValue = function(val) {
-            val = parseFloat(String(val).slice(0, 3), 10);
+            val = parseFloat(val);
             
             if (isNaN(val)) {
                 val = _s.limits.color_rgba.min;
@@ -705,7 +712,7 @@
 
             if (types.indexOf(type) !== -1) {
                 if (typeof c === 'string') {
-                    return typeof c === 'string' && c !== '' && c.toLowerCase().indexOf(type) === 0;
+                    return c !== '' && c.toLowerCase().indexOf(type) === 0;
                 } else if (Array.isArray(c)) {
                     return validateRGBAArr(c);
                 } else if (typeof c === 'object') {
@@ -1319,19 +1326,12 @@
             return $.fn.chameleon;
         };
     
-    _s.allowed_values = {
-        'settings_type': [_s.actions.COLORIZE, _s.actions.GETIMAGECOLORS, _s.actions.WRAPCOLOR],
-        'sort_colors': ['primary', 'hue'],
-        'color_format': ['hex', 'rgb', 'rgba']
-    };
-    
     var actions = {
         stopColorize: stopColorize,
         decolorize: decolorize,
         get_s: {result: get_s},
         skipValidation: {result: skipValidation},
         getDefaultSettings: {result: getDefaultSettings},
-        colorObject: {result: colorObject},
         sortColors: {result: sortImageColors},
         isColorValid: {result: isColorValid},
         fixColor: {result: fixColor}
@@ -1340,6 +1340,18 @@
     actions[_s.actions.COLORIZE] = colorize;
     actions[_s.actions.GETIMAGECOLORS] = getImageColors;
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
+    actions[_s.actions.COLOROBJECT] = {result: colorObject};
+    
+    _s.allowed_values = {
+        'settings_type': [
+            _s.actions.COLORIZE,
+            _s.actions.GETIMAGECOLORS,
+            _s.actions.WRAPCOLOR,
+            _s.actions.COLOROBJECT
+        ],
+        'sort_colors': ['primary', 'hue'],
+        'color_format': ['hex', 'rgb', 'rgba']
+    };
 
     $.fn.chameleon = function (action, settings) {
         var $elements = $(this),
