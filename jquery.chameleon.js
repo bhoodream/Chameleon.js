@@ -185,6 +185,7 @@
                                 {
                                     'tag': 'img',
                                     'main_img': true,
+                                    'alt': 'Chameleon image',
                                     'src': 'https://i.imgur.com/Qy0TaIF.gif'
                                 }
                             ]
@@ -629,7 +630,7 @@
             return is_valid;
         },
         limitRGBAValue = function(val) {
-            val = parseInt(String(val).slice(0, 3), 10);
+            val = parseFloat(String(val).slice(0, 3), 10);
             
             if (isNaN(val)) {
                 val = _s.limits.color_rgba.min;
@@ -1162,7 +1163,7 @@
                                     $elem.append(renderChildren(s.elem.children));
                             
                                     if (s.elem.src && s.elem.tag === 'img') {
-                                        $elem.attr('src', s.elem.src);
+                                        $elem.attr('src', s.elem.src).attr('alt', s.elem.alt || 'Chameleon image');
                                     }
                             
                                     if (s.elem.id) {
