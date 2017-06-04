@@ -73,15 +73,24 @@
         },
         isSettingEmpty = function(val) {
             var is_empty = false;
-        
-            if (typeof val === 'string') {
-                is_empty = val === '';
+            
+            switch (typeof val) {
+                case 'string':
+                    is_empty = val === '';
+                    
+                    break;
+                case 'number':
+                    is_empty = isNaN(parseFloat(val));
+                    
+                    break;
+                default:
+                    // Silence
             }
         
             return is_empty;
         },
         isSettingCanBeIgnored = function(val, prop) {
-            var can_be_ignored = ['source_color'];
+            var can_be_ignored = ['source_color', 'alpha'];
         
             return {
                 ignore: isSettingEmpty(val) && can_be_ignored.indexOf(prop) !== -1,

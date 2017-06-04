@@ -332,8 +332,19 @@
 
             return '';
         },
-        getAlpha = function(c) {
-          return c.alpha || c.a;
+        getAlpha = function() {
+            var args = [].slice.apply(arguments),
+                alpha = _s.limits.alpha.max;
+            
+            $.each(args, function(i, a) {
+                if (typeof a !== 'undefined' && !isNaN(a)) {
+                    alpha = a;
+                    
+                    return false;
+                }
+            });
+            
+            return alpha;
         },
         convertValToPercent = function(s) {
             var max_percent = 1,
@@ -376,7 +387,7 @@
                 r = limitRGBAValue(s.color.r);
                 g = limitRGBAValue(s.color.g);
                 b = limitRGBAValue(s.color.b);
-                alpha = limitRGBAValue(s.color.alpha || s.color.a || s.alpha || _s.limits.color_alpha.max);
+                alpha = limitRGBAValue(getAlpha(s.color.alpha, s.color.a, s.alpha, _s.limits.color_alpha.max));
                 hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
             } else {
                 color = colorStrToHexAlpha(s.color);
@@ -386,7 +397,7 @@
                 }
 
                 hex = color.hex;
-                alpha = color.alpha || s.alpha;
+                alpha = getAlpha(s.alpha, color.alpha);
                 r = parseInt(hex.substr(r_index, 2), 16);
                 g = parseInt(hex.substr(g_index, 2), 16);
                 b = parseInt(hex.substr(b_index, 2), 16);
