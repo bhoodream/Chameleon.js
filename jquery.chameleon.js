@@ -387,7 +387,7 @@
                 r = limitRGBAValue(s.color.r);
                 g = limitRGBAValue(s.color.g);
                 b = limitRGBAValue(s.color.b);
-                alpha = limitRGBAValue(getAlpha(s.color.alpha, s.color.a, s.alpha, _s.limits.color_alpha.max));
+                alpha = limitRGBAValue(getAlpha(s.alpha, s.color.alpha, s.color.a, _s.limits.color_alpha.max));
                 hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
             } else {
                 color = colorStrToHexAlpha(s.color);
@@ -527,9 +527,9 @@
                 g = new_color.g,
                 b = new_color.b;
 
-            new_color.r = Math.round(Math.min(Math.max(0, r + (r * multiplier)), 255));
-            new_color.g = Math.round(Math.min(Math.max(0, g + (g * multiplier)), 255));
-            new_color.b = Math.round(Math.min(Math.max(0, b + (b * multiplier)), 255));
+            new_color.r = Math.round(Math.min(Math.max(0, r + (r * multiplier)), _s.limits.color_rgba.max));
+            new_color.g = Math.round(Math.min(Math.max(0, g + (g * multiplier)), _s.limits.color_rgba.max));
+            new_color.b = Math.round(Math.min(Math.max(0, b + (b * multiplier)), _s.limits.color_rgba.max));
             new_color = colorObject({color: new_color});
             
             return new_color;
@@ -785,7 +785,13 @@
         },
         wrapColor = function (s, $elements, extra_s) {
             if (s) {
-                var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format;
+                var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format,
+                    extra_s_source_color = false;
+                
+                if (isColorValid(extra_s_format)) {
+                    extra_s_source_color = extra_s_format;
+                    extra_s_format = extra_s[1] || _s.color.default_format;
+                }
 
                 if (typeof s === 'object') {
                     if (Array.isArray(s)) {
@@ -806,11 +812,11 @@
                         return $colors;
                     } else {
                         if (!s.color) {
-                            s = {color: s, color_format: extra_s_format};
+                            s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format};
                         }
                     }
                 } else if (typeof s === 'string') {
-                    s = {color: s, color_format: extra_s_format};
+                    s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format};
                 }
 
                 s.color = colorObject({color: s.color});
@@ -1367,7 +1373,7 @@
     $.fn.chameleon = function (action, settings) {
         var $elements = $(this),
             is_action_passed = typeof action === 'string',
-            extra_s = Array.prototype.slice.call(arguments, 2);
+            extra_s = [].slice.call(arguments, 2);
     
         settings = is_action_passed ? settings : action;
         action = is_action_passed ? action : _s.actions.COLORIZE;
