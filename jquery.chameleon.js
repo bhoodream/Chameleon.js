@@ -86,23 +86,12 @@
             skip_validation: false
         };
 
-    var clearSel = function(sel) {
-            return sel.slice(1);
-        },
-        isUndefined = function(val) {
-            return typeof val === 'undefined';
-        },
-        logger = function(msg, type) {
-            if (hasDebug()) {
-                chameleonDebug.logger(msg, type);
-            }
-        },
-        hasDebug = function() {
-            return window && typeof window.chameleonDebug !== 'undefined';
-        },
-        canValidate = function () {
-            return !_f.skip_validation && hasDebug();
-        },
+    var clearSel = function(sel) { return sel.slice(1); },
+        isUndefined = function(val) { return typeof val === 'undefined'; },
+        getRandomFromTo = function(from, to) { return from + parseInt((Math.random() * (to - from)).toFixed(0), 10); },
+        logger = function(msg, type) { if (hasDebug()) chameleonDebug.logger(msg, type); },
+        hasDebug = function() { return window && typeof window.chameleonDebug !== 'undefined'; },
+        canValidate = function () { return !_f.skip_validation && hasDebug(); },
         validateSettings = function(s, a, es) {
             if (canValidate()) {
                 chameleonDebug.init({_s: _s});
@@ -120,9 +109,7 @@
             
             return s;
         },
-        get_s = function() {
-            return $.extend({}, _s);
-        },
+        get_s = function() { return $.extend({}, _s); },
         getDefaultSettings = function(s) {
             s = s || {};
 
@@ -367,15 +354,18 @@
             return Math.min(max_percent, val);
         },
         colorObject = function(s) {
+            s = s || {};
+            
             var r_index = 0,
                 g_index = 2,
                 b_index = 4,
-                color, hex, alpha, r, g, b;
+                color, hex, alpha, r, g, b, clone_color;
 
-            if (typeof s.color === 'object') {
-                if (Array.isArray(s.color)) {
-                    var clone_color = s.color.slice();
-
+            if (typeof s === 'object') {
+                if (Array.isArray(s)) {
+                    clone_color = s.slice();
+                    s = {};
+        
                     s.color = {
                         r: clone_color[0],
                         g: clone_color[1],
@@ -383,19 +373,49 @@
                         alpha: clone_color[3]
                     };
                 }
+                
+                if (typeof s.color === 'object' || typeof s.color === 'undefined') {
+                    if (Array.isArray(s.color)) {
+                        clone_color = s.color.slice();
+        
+                        s.color = {
+                            r: clone_color[0],
+                            g: clone_color[1],
+                            b: clone_color[2],
+                            alpha: clone_color[3]
+                        };
+                    }
+                    
+                    if (typeof s.color === 'undefined') {
+                        if (typeof s.r !== 'undefined' && typeof s.g !== 'undefined' && typeof s.b !== 'undefined') {
+                            clone_color = $.extend({}, s);
+                            s = {color: clone_color};
+                        } else {
+                            return false;
+                        }
+                    }
     
-                r = limitRGBAValue(s.color.r);
-                g = limitRGBAValue(s.color.g);
-                b = limitRGBAValue(s.color.b);
-                alpha = limitRGBAValue(getAlpha(s.alpha, s.color.alpha, s.color.a, _s.limits.color_alpha.max));
-                hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
-            } else {
-                color = colorStrToHexAlpha(s.color);
-
-                if (!color.hex) {
-                    return false;
+                    r = limitRGBAValue(s.color.r);
+                    g = limitRGBAValue(s.color.g);
+                    b = limitRGBAValue(s.color.b);
+                    alpha = limitRGBAValue(getAlpha(s.alpha, s.color.alpha, s.color.a, _s.limits.color_alpha.max));
+                    hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
+                } else {
+                    color = colorStrToHexAlpha(s.color);
+    
+                    if (!color.hex) return false;
+    
+                    hex = color.hex;
+                    alpha = getAlpha(s.alpha, color.alpha);
+                    r = parseInt(hex.substr(r_index, 2), 16);
+                    g = parseInt(hex.substr(g_index, 2), 16);
+                    b = parseInt(hex.substr(b_index, 2), 16);
                 }
-
+            } else {
+                color = colorStrToHexAlpha(s);
+    
+                if (!color.hex) return false;
+    
                 hex = color.hex;
                 alpha = getAlpha(s.alpha, color.alpha);
                 r = parseInt(hex.substr(r_index, 2), 16);
@@ -441,8 +461,17 @@
                 hex: hex, r: r, g: g, b: b, alpha: alpha, chroma: chr, hue: hue, sat: sat, val: val,
                 rgb: 'rgb(' + r + ',' + g + ',' + b + ')',
                 rgba: 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')',
-                lum: function(multiplier) {
-                    return changeColorLum(this, multiplier);
+                adjustLum: function(lum) {
+                    return adjustColorLum(this, lum);
+                },
+                setAlpha: function(a) {
+                    return colorObject({color: this, alpha: a});
+                },
+                contrast: function(back, limit) {
+                    back = colorObject(back);
+                    limit = limit || _s.limits.color_adapt_limit.max;
+                    
+                    return makeColorReadable(back, limit, this);
                 }
             };
         },
@@ -519,18 +548,18 @@
 
             return l1 > l2 ? (l1 + g) / (l2 + g) : (l2 + g) / (l1 + g);
         },
-        changeColorLum = function (color, multiplier) {
-            multiplier = multiplier || 0;
+        adjustColorLum = function (color, lum) {
+            lum = lum || 0;
 
             var new_color = $.extend({}, color),
                 r = new_color.r,
                 g = new_color.g,
                 b = new_color.b;
 
-            new_color.r = Math.round(Math.min(Math.max(0, r + (r * multiplier)), _s.limits.color_rgba.max));
-            new_color.g = Math.round(Math.min(Math.max(0, g + (g * multiplier)), _s.limits.color_rgba.max));
-            new_color.b = Math.round(Math.min(Math.max(0, b + (b * multiplier)), _s.limits.color_rgba.max));
-            new_color = colorObject({color: new_color});
+            new_color.r = Math.round(Math.min(Math.max(0, r + (r * lum)), _s.limits.color_rgba.max));
+            new_color.g = Math.round(Math.min(Math.max(0, g + (g * lum)), _s.limits.color_rgba.max));
+            new_color.b = Math.round(Math.min(Math.max(0, b + (b * lum)), _s.limits.color_rgba.max));
+            new_color = colorObject(new_color);
             
             return new_color;
         },
@@ -540,11 +569,9 @@
 
             while (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
                 try_num += 1;
-                front_color = changeColorLum(front_color, lum_dir * lum_step * try_num);
-
-                if (try_num > limit) {
-                    break;
-                }
+                front_color = adjustColorLum(front_color, lum_dir * lum_step * try_num);
+                
+                if (try_num > limit) break;
             }
 
             if (typeof new_alpha === 'number' && front_color.alpha < new_alpha) {
@@ -552,24 +579,24 @@
             }
 
             return try_num > limit ?
-                colorObject({color: lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex}) :
+                colorObject(lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex) :
                 front_color;
         },
         whiteOrBlackHex = function(color) {
             if (typeof color === 'string') {
-                color = colorObject({color: color});
+                color = colorObject(color);
             }
 
-            var diff_with_black = lumDiff(color, colorObject({color: _s.color.black.hex}));
+            var diff_with_black = lumDiff(color, colorObject(_s.color.black.hex));
 
             return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black.hex : _s.color.white.hex;
         },
         makeColorReadable = function (back_color, limit, front_color) {
             var new_color = $.extend({}, front_color),
                 lum_dir = 1;
-
+            
             if (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
-                if (lumDiff(back_color, colorObject({color: _s.color.black.hex})) >= _s.color.readable_lum_diff) {
+                if (lumDiff(back_color, colorObject(_s.color.black.hex)) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
                 }
 
@@ -657,6 +684,11 @@
             }
             
             return val;
+        },
+        getRandomColor = function() {
+            var f = _s.limits.color_rgba.min, t = _s.limits.color_rgba.max;
+            
+            return colorObject([getRandomFromTo(f, t), getRandomFromTo(f, t), getRandomFromTo(f, t), getRandomFromTo(f, t)]);
         },
         fixColor = function(c) {
             if (c) {
@@ -798,7 +830,7 @@
                         var $colors = null;
 
                         if (isColorValid(s)) {
-                            $colors = wrapColor(colorObject({color: s}), $elements, extra_s);
+                            $colors = wrapColor(colorObject(s), $elements, extra_s);
                         } else {
                             $.each(s, function (i, c) {
                                 c = $.extend({}, {color_format: extra_s_format}, typeof c === 'object' ? $.extend({}, c) : {color: c});
@@ -819,8 +851,8 @@
                     s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format};
                 }
 
-                s.color = colorObject({color: s.color});
-                s.source_color = colorObject({color: s.source_color});
+                s.color = colorObject(s.color);
+                s.source_color = colorObject(s.source_color);
                 s.color_format = s.color_format || _s.color.default_format;
 
                 if (s.color) {
@@ -828,6 +860,7 @@
                         $color_elem = $('<span class="chmln__colors-elem">'),
                         $source_color_elem = $('<span class="chmln__colors-elem _source">'),
                         $adapt_arrow = $('<span class="chmln__colors-arrow">'),
+                        right_arrow_symbol = '&#8594',
                         is_color_adapted = s.source_color.hex && (s.source_color.hex !== s.color.hex || s.source_color.alpha !== s.color.alpha),
                         colorElem = function (s) {
                             var color = getColorString({color: s.color, format: s.format});
@@ -854,7 +887,7 @@
 
                     if (is_color_adapted) {
                         colorElem({$elem: $source_color_elem, color: s.source_color, format: s.color_format});
-                        colorElem({$elem: $adapt_arrow, color: s.source_color, format: s.color_format, html: '&#8594'});
+                        colorElem({$elem: $adapt_arrow, color: s.source_color, format: s.color_format, html: right_arrow_symbol});
 
                         $color_elem.addClass('_adapted');
                         $source_color_elem.append($adapt_arrow);
@@ -999,7 +1032,7 @@
 
             if ($elem.length) {
                 var marks = [],
-                    main_color = img_colors[0] || colorObject({color: s.dummy_back}),
+                    main_color = img_colors[0] || colorObject(s.dummy_back),
                     mark_amt_affix = 1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
@@ -1012,7 +1045,7 @@
                 }
 
                 while (img_colors.length < mark_amt_affix) {
-                    img_colors.push(colorObject({color: s.dummy_front}));
+                    img_colors.push(colorObject(s.dummy_front));
                 }
 
                 if (s.adapt_colors) {
@@ -1032,6 +1065,7 @@
                     var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
 
+                        
                         if (rule) {
                             if (typeof rule === 'function') {
                                 rule($elem, color, color_index, img_colors);
@@ -1046,7 +1080,7 @@
                             }
                         }
                     };
-
+                    
                     applyRules(s.rules.container, $elem, main_color, 0, 'background-color');
 
                     for (var i = 0; i < marks.length; i += 1) {
@@ -1351,7 +1385,8 @@
         getDefaultSettings: {result: getDefaultSettings},
         sortColors: {result: sortImageColors},
         isColorValid: {result: isColorValid},
-        fixColor: {result: fixColor}
+        fixColor: {result: fixColor},
+        getRandomColor: {result: getRandomColor}
     };
 
     actions[_s.actions.COLORIZE] = colorize;
