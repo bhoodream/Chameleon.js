@@ -469,7 +469,7 @@
                 setAlpha: function(a) {
                     return colorObject({color: this, alpha: a});
                 },
-                contrast: function(back, limit) {
+                readable: function(back, limit) {
                     back = colorObject(back);
                     limit = limit || _s.limits.color_adapt_limit.max;
                     
@@ -819,7 +819,8 @@
         },
         wrapColor = function (s, $elements, extra_s) {
             if (s) {
-                var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format,
+                var has_extra_s = typeof extra_s === 'object',
+                    extra_s_format = has_extra_s ? extra_s[0] : _s.color.default_format,
                     extra_s_source_color = false,
                     extra_s_wrap_color_mode = _s.color.default_wrap_color_mode;
                 
@@ -828,7 +829,7 @@
                     extra_s_source_color = extra_s[0];
                 }
                 
-                if (extra_s.length > 1) {
+                if (has_extra_s && extra_s.length > 1) {
                     extra_s_source_color = extra_s[0];
                     extra_s_format = extra_s[1] || _s.color.default_format;
     
