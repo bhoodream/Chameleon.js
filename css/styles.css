@@ -6,6 +6,19 @@
     line-height: 1.6;
     white-space: nowrap;
 }
+
+.chmln__colors-elem-wrapper .chmln__colors-elem-wrapper {
+    margin: 0;
+}
+
+.chmln__colors-elem-wrapper._text ._source {
+    padding-right: 0;
+}
+
+.chmln__colors-elem-wrapper._last {
+    margin-right: 0;
+}
+
 .chmln__colors-elem {
     position: relative;
     display: inline-block;

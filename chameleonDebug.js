@@ -126,7 +126,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_colors', 'color_format']
+                        items: ['content_prefix', 'settings_type', 'sort_colors', 'color_format', 'wrap_color_mode']
                     },
                     {
                         type: 'color',

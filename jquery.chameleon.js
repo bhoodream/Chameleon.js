@@ -37,7 +37,8 @@
                 readable_lum_diff: 5,
                 readable_alpha: 0.5,
                 lum_step: 0.05,
-                default_format: 'hex'
+                default_format: 'hex',
+                default_wrap_color_mode: 'tile'
             },
             canvas: {
                 side: 400
@@ -206,6 +207,7 @@
 
             default_s[_s.actions.WRAPCOLOR] = {
                 color_format: 'hex',
+                wrap_color_mode: 'tile',
                 color: _s.color.black.hex,
                 source_color: _s.color.white.hex,
                 debug: false
@@ -632,7 +634,7 @@
         validateColorStr = function(c) {
             var format = getColorFormat(c) || _s.color.default_format,
                 color_arr = parseColorStr(c, format);
-
+            
             if (format === 'hex') {
                 return color_arr !== null;
             } else {
@@ -818,13 +820,23 @@
         wrapColor = function (s, $elements, extra_s) {
             if (s) {
                 var extra_s_format = extra_s ? extra_s[0] : _s.color.default_format,
-                    extra_s_source_color = false;
+                    extra_s_source_color = false,
+                    extra_s_wrap_color_mode = _s.color.default_wrap_color_mode;
                 
                 if (isColorValid(extra_s_format)) {
-                    extra_s_source_color = extra_s_format;
-                    extra_s_format = extra_s[1] || _s.color.default_format;
+                    extra_s_format = _s.color.default_format;
+                    extra_s_source_color = extra_s[0];
                 }
-
+                
+                if (extra_s.length > 1) {
+                    extra_s_source_color = extra_s[0];
+                    extra_s_format = extra_s[1] || _s.color.default_format;
+    
+                    if (extra_s.length > 2) {
+                        extra_s_wrap_color_mode = extra_s[2] || _s.color.default_wrap_color_mode;
+                    }
+                }
+                
                 if (typeof s === 'object') {
                     if (Array.isArray(s)) {
                         var $colors = null;
@@ -844,16 +856,18 @@
                         return $colors;
                     } else {
                         if (!s.color) {
-                            s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format};
+                            s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format, wrap_color_mode: extra_s_wrap_color_mode};
                         }
                     }
                 } else if (typeof s === 'string') {
-                    s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format};
+                    s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format, wrap_color_mode: extra_s_wrap_color_mode};
                 }
 
                 s.color = colorObject(s.color);
                 s.source_color = colorObject(s.source_color);
                 s.color_format = s.color_format || _s.color.default_format;
+                s.wrap_color_mode = s.wrap_color_mode || _s.color.default_wrap_color_mode;
+                s.color_html = s.color_html || false;
 
                 if (s.color) {
                     var $container = $('<div class="chmln__colors-elem-wrapper">'),
@@ -867,6 +881,8 @@
 
                             if (color) {
                                 s.html = s.html || color;
+                                
+                                var style = {};
 
                                 if (s.format === 'rgba' && !isUndefined(s.color.alpha) && s.color.alpha < 1) {
                                     s.html =
@@ -875,26 +891,36 @@
                                     color = addHashToHex(s.color.hex);
                                     s.color = s.color.alpha > _s.color.readable_alpha ? s.color : _s.color.white.hex;
                                 }
+                                
+                                if (s.wrap_color_mode === 'tile') {
+                                    style = {
+                                        'background-color': color,
+                                        'color': addHashToHex(whiteOrBlackHex(s.color))
+                                    };
+                                } else if (s.wrap_color_mode === 'text') {
+                                    style = {
+                                        'color': color
+                                    };
+                                }
 
-                                s.$elem.css({
-                                    'background-color': color,
-                                    'color': addHashToHex(whiteOrBlackHex(s.color))
-                                }).html(s.html);
+                                s.$elem.css(style).html(s.html);
                             }
                         };
 
-                    colorElem({$elem: $color_elem, color: s.color, format: s.color_format});
+                    colorElem({$elem: $color_elem, color: s.color, html: s.color_html, format: s.color_format, wrap_color_mode: s.wrap_color_mode});
 
                     if (is_color_adapted) {
-                        colorElem({$elem: $source_color_elem, color: s.source_color, format: s.color_format});
-                        colorElem({$elem: $adapt_arrow, color: s.source_color, format: s.color_format, html: right_arrow_symbol});
+                        colorElem({$elem: $source_color_elem, color: s.source_color, format: s.color_format, wrap_color_mode: s.wrap_color_mode});
+                        colorElem({$elem: $adapt_arrow, color: s.source_color, format: s.color_format, wrap_color_mode: s.wrap_color_mode, html: right_arrow_symbol});
 
                         $color_elem.addClass('_adapted');
                         $source_color_elem.append($adapt_arrow);
                         $container.append($source_color_elem);
                     }
 
-                    $container.append($color_elem);
+                    $container
+                        .append($color_elem)
+                        .addClass('_' + s.wrap_color_mode);
 
                     return $container;
                 }
@@ -1401,6 +1427,7 @@
             _s.actions.WRAPCOLOR,
             _s.actions.COLOROBJECT
         ],
+        'wrap_color_mode': ['tile', 'text'],
         'sort_colors': ['primary', 'hue'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
@@ -1408,7 +1435,7 @@
     $.fn.chameleon = function (action, settings) {
         var $elements = $(this),
             is_action_passed = typeof action === 'string',
-            extra_s = [].slice.call(arguments, 2);
+            extra_s = [].slice.call(arguments, is_action_passed ? 2 : 1);
     
         settings = is_action_passed ? settings : action;
         action = is_action_passed ? action : _s.actions.COLORIZE;
