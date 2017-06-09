@@ -906,7 +906,7 @@
                 }
 
                 if (_s.allowed_values.sort_type.indexOf(s.sort_type) !== -1 && s.colors && s.colors.length) {
-                    return sort(s.sort_type, s.colors);
+                    return sort(s.sort_type, s.colors.slice());
                 } else {
                     if (!s.colors || !s.colors.length) {
                         logger('sortColors - No colors given!', 'warn');
