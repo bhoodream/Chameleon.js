@@ -16,7 +16,15 @@
 }
 
 .chmln__colors-elem-wrapper._last {
-    margin-right: 0;
+    margin: 0;
+}
+
+.chmln__colors-elem-wrapper._compact .chmln__colors-elem {
+    padding: 0;
+}
+
+.chmln__colors-elem-wrapper._compact .chmln__colors-elem._source {
+    padding-right: 10px;
 }
 
 .chmln__colors-elem {

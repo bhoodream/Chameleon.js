@@ -20,7 +20,8 @@
                 COLORIZE: 'colorize',
                 GETIMAGECOLORS: 'getImageColors',
                 WRAPCOLOR: 'wrapColor',
-                COLOROBJECT: 'colorObject'
+                COLOROBJECT: 'colorObject',
+                SORTCOLORS: 'sortColors'
             },
             color: {
                 black: {
@@ -38,6 +39,7 @@
                 readable_alpha: 0.5,
                 lum_step: 0.05,
                 default_format: 'hex',
+                default_sorting: 'primary',
                 default_wrap_color_mode: 'tile'
             },
             canvas: {
@@ -133,70 +135,17 @@
                 data_colors: false,
                 dummy_back: _s.color.white.hex,
                 dummy_front: _s.color.black.hex,
-                content: {
-                    root: 'body',
-                    items: [
-                        {
-                            container: {
-                                'tag': 'div',
-                                'class': 'chmln'
-                            },
-                            elements: [
-                                {
-                                    'tag': 'div',
-                                    'class': 'chmln-wrapper',
-                                    'ignore': true,
-                                    'children': [
-                                        {
-                                            'tag': 'h2',
-                                            'class': 'chmln1',
-                                            'content': 'The Metamorphosis'
-                                        },
-                                        {
-                                            'tag': 'blockquote',
-                                            'class': 'chmln2',
-                                            'content': 'He was a tool of the boss, without brains or backbone.',
-                                            'children': [
-                                                {
-                                                    'tag': 'cite',
-                                                    'class': 'chmln3',
-                                                    'content': 'Franz Kafka'
-                                                }
-                                            ]
-                                        },
-                                        {
-                                            'tag': 'p',
-                                            'class': 'chmln4',
-                                            'content': 'The Metamorphosis is a seminal work of fiction first published in 1915 by Franz Kafka, and has come to be appreciated and studied the world over for it’s power, insight and brutal simplicity.'
-                                        }
-                                    ]
-                                },
-                                {
-                                    'tag': 'img',
-                                    'main_img': true,
-                                    'alt': 'Chameleon image',
-                                    'src': 'https://i.imgur.com/Qy0TaIF.gif'
-                                }
-                            ]
-                        }
-                    ]
-                },
-                rules: {
-                    'container': {
-                        'prop': 'background-color'
-                    },
-                    'element': {
-                        'prop': 'color'
-                    }
-                },
+                content: {root: 'body', items: []},
+                rules: {'container': {'prop': 'background-color'}, 'element': {'prop': 'color'}},
                 afterColorized: function(item_colors, s) {},
                 beforeAsyncColorized: function(s) {},
                 afterAsyncColorized: function(s) {}
             };
 
             default_s[_s.actions.GETIMAGECOLORS] = {
-                sort_colors: 'primary',
+                sort_type: 'primary',
                 color_format: 'hex',
+                img_src: '',
                 color_alpha: _s.color.alpha,
                 color_difference: _s.color.difference,
                 canvas_side: _s.canvas.side,
@@ -216,6 +165,12 @@
             default_s[_s.actions.COLOROBJECT] = {
                 alpha: _s.limits.alpha.max,
                 color: _s.color.black.hex,
+                debug: false
+            };
+    
+            default_s[_s.actions.SORTCOLORS] = {
+                sort_type: _s.color.default_sorting,
+                colors: [],
                 debug: false
             };
 
@@ -927,23 +882,37 @@
                 }
             }
         },
-        sortImageColors = function(s) {
+        sortColors = function(s) {
             if (s) {
-                s.type = s.type || 'primary';
+                if (Array.isArray(s)) {
+                    var arr = s.slice();
+                    
+                    s = {colors: arr};
+                }
+                
+                s.sort_type = s.sort_type || _s.color.default_sorting;
 
-                var sortColors = {
-                    'primary': function(colors) {
+                var sort = function(type, colors) {
+                    if (type === 'primary') {
                         return colors;
-                    },
-                    'hue': function(colors) {
-                        return colors.sort(function(a, b) { return a.hue - b.hue; });
+                    } else {
+                        return colors.sort(function(a, b) {
+                            if (isUndefined(a[type])) a = colorObject(a);
+                            if (isUndefined(b[type])) b = colorObject(b);
+                            
+                            return a[type] - b[type];
+                        });
                     }
-                };
+                }
 
-                if (sortColors.hasOwnProperty(s.type) && s.colors && s.colors.length) {
-                    return sortColors[s.type](s.colors);
+                if (_s.allowed_values.sort_type.indexOf(s.sort_type) !== -1 && s.colors && s.colors.length) {
+                    return sort(s.sort_type, s.colors);
                 } else {
-                    logger('sortImageColors - Unknown sort type "' + s.type + '".', 'warn');
+                    if (!s.colors || !s.colors.length) {
+                        logger('sortColors - No colors given!', 'warn');
+                    } else {
+                        logger('sortColors - Unknown sort type "' + s.sort_type + '".', 'warn');
+                    }
                 }
             }
 
@@ -972,15 +941,13 @@
                 'load': function (e) {
                     var target_img = e.target,
                         canvas = canvasSide({w: target_img.width, h: target_img.height, side: s.canvas_side}),
-                        $old_canvas = $container.find(_s.sel.chmln + _s._sel._canvas),
                         $canvas = setElemAttributes($('<canvas>'), {
                             'class': clearSel(_s.sel.chmln + _s._sel._canvas),
                             'style': 'display: none;',
                             'width': canvas.w,
                             'height': canvas.h
                         });
-
-                    $old_canvas.remove();
+                    
                     $container.append($canvas);
 
                     var ctx = $canvas[0].getContext("2d"),
@@ -1037,14 +1004,16 @@
                             }
                         }
 
-                        if (s.sort_colors) {
-                            img_colors = sortImageColors({type: s.sort_colors, colors: img_colors});
+                        if (s.sort_type) {
+                            img_colors = sortColors({sort_type: s.sort_type, colors: img_colors});
                         }
 
                         onImgLoad(img_colors, $container, s);
                     } catch (error) {
                         onImgError([], error, $container, s, img_src);
                     }
+    
+                    $canvas.remove();
                 },
                 'error': function(e) {
                     onImgError([], e, $container, s, img_src);
@@ -1367,6 +1336,12 @@
             };
         
             $elements.each(handleElement);
+            
+            if (!$elements.length && s.img_src) {
+                s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS }), s);
+                
+                parseImageColors($('body'), s.img_src, s, s.onGetColorsSuccess, s.onGetColorsError);
+            }
         },
         stopColorize = function(s, $elements) {
             var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln + _s._sel._colorize_done + ')');
@@ -1410,7 +1385,6 @@
         get_s: {result: get_s},
         skipValidation: {result: skipValidation},
         getDefaultSettings: {result: getDefaultSettings},
-        sortColors: {result: sortImageColors},
         isColorValid: {result: isColorValid},
         fixColor: {result: fixColor},
         getRandomColor: {result: getRandomColor}
@@ -1420,16 +1394,18 @@
     actions[_s.actions.GETIMAGECOLORS] = getImageColors;
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
     actions[_s.actions.COLOROBJECT] = {result: colorObject};
+    actions[_s.actions.SORTCOLORS] = {result: sortColors};
     
     _s.allowed_values = {
         'settings_type': [
             _s.actions.COLORIZE,
             _s.actions.GETIMAGECOLORS,
             _s.actions.WRAPCOLOR,
-            _s.actions.COLOROBJECT
+            _s.actions.COLOROBJECT,
+            _s.actions.SORTCOLORS
         ],
         'wrap_color_mode': ['tile', 'text'],
-        'sort_colors': ['primary', 'hue'],
+        'sort_type': ['primary', 'hue', 'sat', 'val', 'chroma', 'alpha'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
 

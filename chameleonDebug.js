@@ -90,7 +90,7 @@
             return is_empty;
         },
         isSettingCanBeIgnored = function(val, prop) {
-            var can_be_ignored = ['source_color', 'alpha'];
+            var can_be_ignored = ['source_color', 'alpha', 'img_src'];
         
             return {
                 ignore: isSettingEmpty(val) && can_be_ignored.indexOf(prop) !== -1,
@@ -110,9 +110,9 @@
         isColorValid = function (color) {
             return $.fn.chameleon('isColorValid', color);
         }
-        validateSettings = function(s, a, es) {
+        validateSettings = function(settings, action, es) {
             var invalid = [],
-                fixed_settings = s || {},
+                fixed_settings = settings || {},
                 val_types = [
                     {
                         type: 'number',
@@ -126,7 +126,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_colors', 'color_format', 'wrap_color_mode']
+                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'img_src']
                     },
                     {
                         type: 'color',
@@ -147,7 +147,7 @@
                         msg: function() {
                             return 'Should be an array.';
                         },
-                        items: []
+                        items: ['colors']
                     },
                     {
                         type: 'object',
@@ -207,7 +207,7 @@
                 },
                 fixVal = function(val, prop, is_valid, fixCB) {
                     if (typeof fixCB === 'function' && !is_valid) {
-                        val = fixCB(beforeFix(val, prop));
+                        val = fixCB(beforeFix(val, prop), prop);
                     }
                 
                     return {
@@ -251,9 +251,7 @@
                         });
                     },
                     arrayValidation: function(val, prop) {
-                        return fixVal(val, prop, Array.isArray(val), function(v) {
-                            return [];
-                        });
+                        return fixVal(val, prop, isSettingsArrayValid(val, prop), fixSettingsArray);
                     },
                     objectValidation: function(val, prop) {
                         return fixVal(val, prop, typeof val === 'object', function(v) {
@@ -325,82 +323,40 @@
                 },
                 isNotValid = function(c) { return !c.valid; };
         
-            var check_result;
-        
-            if (typeof s === 'string') {
-                toggleDebug({debug: true});
-            
-                var checkString = {};
-            
-                checkString[_s.actions.WRAPCOLOR] = function(s) {
-                    var r = false,
-                        invalid = !isColorValid(s);
-                
-                    if (invalid) {
-                        var fixed_val = fixColor(s);
-                    
-                        r = {
-                            invalid: {
-                                prop: _s.actions.WRAPCOLOR,
-                                val: s,
-                                fixed_val: fixed_val,
-                                valid: false,
-                                msg: 'Color should be valid! Invalid color: ' + JSON.stringify(s) + '.'
-                            },
-                            fixed_settings: fixed_val
-                        };
-                    }
-                
-                    return r;
-                };
-            
-                if (checkString.hasOwnProperty(a)) {
-                    check_result = checkString[a](s);
-                
-                    if (check_result) {
-                        invalid.push(check_result.invalid);
-                        fixed_settings = check_result.fixed_settings;
-                    }
-                }
-            } else if (typeof s === 'number') {
-            
-            }  else if (Array.isArray(s)) {
-                toggleDebug({debug: true});
-            
-                var checkArray = {};
-            
-                checkArray[_s.actions.WRAPCOLOR] = function(s) {
+            var check_result,
+                checkArray = {},
+                checkArrayColors = function(s) {
                     var r = false,
                         invalid = false,
                         arr_is_color = isColorValid(s);
-                
+            
                     if (arr_is_color) {
                         invalid = !arr_is_color;
                     } else {
                         invalid = s.filter(function(c) {
                             var is_valid = false;
-                        
+                    
                             if (typeof c === 'string') {
                                 is_valid = isColorValid(c);
                             } else if (typeof c === 'object') {
-                                if (Array.isArray(c)) {
-                                    is_valid = isColorValid(c);
-                                } else if (typeof c.color !== 'undefined') {
+                                if (typeof c.color !== 'undefined') {
                                     is_valid = isColorValid(c.color);
-                                
+        
                                     if (c.source_color) {
                                         is_valid = is_valid && isColorValid(c.source_color);
                                     }
+                                } else {
+                                    is_valid = isColorValid(c);
                                 }
                             }
-                        
+                    
                             return !is_valid;
                         });
                     }
-                
+            
                     if (invalid && invalid.length) {
                         var fixed_val = s.map(fixColor);
-                    
+                
                         r = {
                             invalid: {
                                 prop: _s.actions.WRAPCOLOR,
@@ -412,23 +368,100 @@
                             fixed_settings: fixed_val
                         };
                     }
-                
+            
                     return r;
                 };
+    
+            checkArray[_s.actions.WRAPCOLOR] = checkArrayColors;
+            checkArray[_s.actions.SORTCOLORS] = checkArrayColors;
             
-                if (checkArray.hasOwnProperty(a)) {
-                    check_result = checkArray[a](s);
+            var isSettingsArrayValid = function (val, prop) {
+                var arr_valid = Array.isArray(val),
+                    check_result = false;
+                
+                switch (prop) {
+                    case 'colors':
+                        arr_valid = arr_valid && !checkArrayColors(val);
+                        
+                        break;
+                        
+                    default:
+                        // Silence
+                }
+                
+                return arr_valid;
+            };
+            
+            var fixSettingsArray = function(val, prop) {
+                var fixed_arr = [];
+                
+                switch (prop) {
+                    case 'colors':
+                        val = val.map(fixColor);
+            
+                        break;
+        
+                    default:
+                    // Silence
+                }
+                
+                return fixed_arr;
+            };
+    
+            var checkString = {},
+                checkStringColor = function(s) {
+                    var r = false,
+                        invalid = !isColorValid(s);
+    
+                    if (invalid) {
+                        var fixed_val = fixColor(s);
+        
+                        r = {
+                            invalid: {
+                                prop: _s.actions.WRAPCOLOR,
+                                val: s,
+                                fixed_val: fixed_val,
+                                valid: false,
+                                msg: 'Color should be valid! Invalid color: ' + JSON.stringify(s) + '.'
+                            },
+                            fixed_settings: fixed_val
+                        };
+                    }
+    
+                    return r;
+                };
+    
+            checkString[_s.actions.WRAPCOLOR] = checkStringColor;
+        
+            if (typeof settings === 'string') {
+                toggleDebug({debug: true});
+            
+                if (checkString.hasOwnProperty(action)) {
+                    check_result = checkString[action](settings);
                 
                     if (check_result) {
                         invalid.push(check_result.invalid);
                         fixed_settings = check_result.fixed_settings;
                     }
                 }
-            } else if (typeof s === 'object') {
-                toggleDebug(s);
+            } else if (typeof settings === 'number') {
             
-                fixed_settings = $.extend({}, s);
-                invalid = checkProps(s).filter(isNotValid);
+            }  else if (Array.isArray(settings)) {
+                toggleDebug({debug: true});
+            
+                if (checkArray.hasOwnProperty(action)) {
+                    check_result = checkArray[action](settings);
+                
+                    if (check_result) {
+                        invalid.push(check_result.invalid);
+                        fixed_settings = check_result.fixed_settings;
+                    }
+                }
+            } else if (typeof settings === 'object') {
+                toggleDebug(settings);
+            
+                fixed_settings = $.extend({}, settings);
+                invalid = checkProps(settings).filter(isNotValid);
             
                 $.each(invalid, function(index, item) {
                     fixed_settings[item.prop] = item.fixed_val;
