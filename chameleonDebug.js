@@ -90,10 +90,11 @@
             return is_empty;
         },
         isSettingCanBeIgnored = function(val, prop) {
-            var can_be_ignored = ['source_color', 'alpha', 'img_src'];
+            var is_empty_and_can_be_empty = isSettingEmpty(val) && _s.can_be_empty.indexOf(prop) !== -1,
+                ignore = is_empty_and_can_be_empty;
         
             return {
-                ignore: isSettingEmpty(val) && can_be_ignored.indexOf(prop) !== -1,
+                ignore: ignore,
                 result: function() {
                     logger('isSettingCanBeIgnored - setting "' + prop + '" will be ignored.', 'log');
                 
@@ -126,7 +127,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'img_src']
+                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src']
                     },
                     {
                         type: 'color',

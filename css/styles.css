@@ -33,14 +33,25 @@
     padding: 5px 10px;
     border-radius: 3px;
 }
+
 .chmln__colors-elem._source {
     border-top-right-radius: 0;
     border-bottom-right-radius: 0;
 }
+
+._tile._gradient .chmln__colors-elem._source {
+    padding-right: 20px;
+}
+
 .chmln__colors-elem._adapted {
     border-top-left-radius: 0;
     border-bottom-left-radius: 0;
 }
+
+._tile._gradient .chmln__colors-elem._adapted {
+    padding-left: 20px;
+}
+
 .chmln__colors-elem-text {
     position: relative;
     z-index: 1;
@@ -59,4 +70,14 @@
 .chmln__colors-arrow {
     display: inline-block;
     padding-left: 7px;
+}
+
+._tile .chmln__colors-arrow._gradient {
+    position: absolute;
+    top: 0;
+    right: -15px;
+    width: 30px;
+    height: 100%;
+    padding-left: 0;
+    z-index: 1;
 }
