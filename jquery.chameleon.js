@@ -864,7 +864,7 @@
                                         });
                                     }
                                 } else {
-                                    if (s.format === 'rgba' && !isUndefined(s.color.alpha) && s.color.alpha < 1) {
+                                    if (s.wrap_color_mode === 'tile' && s.format === 'rgba' && !isUndefined(s.color.alpha) && s.color.alpha < 1) {
                                         s.html =
                                             '<span class="chmln__colors-elem-text">' + s.html + '</span>' +
                                             '<div class="chmln__colors-elem-overlay" style="opacity: ' + (1 - s.color.alpha) + ';"></div>';
@@ -1363,10 +1363,12 @@
         
             $elements.each(handleElement);
             
-            if (!$elements.length && s.img_src) {
-                s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS }), s);
-                
-                parseImageColors($('body'), s.img_src, s, s.onGetColorsSuccess, s.onGetColorsError);
+            if (!$elements.length) {
+                if (s.img_src) {
+                    s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS }), s);
+    
+                    parseImageColors($('body'), s.img_src, s, s.onGetColorsSuccess, s.onGetColorsError);
+                }
             }
         },
         stopColorize = function(s, $elements) {
