@@ -35,4 +35,4 @@ $(document).ready(function() {
 ```
 
 
-For more information and examples check the [demo page](https://vadimfedorov.ru/lab/chameleon_js).
+For more information and examples check the [demo page](https://vadimfedorov.ru/lab/chameleon-js).
