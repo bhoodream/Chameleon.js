@@ -38,7 +38,7 @@ If you need styles, include it.
 <link rel="stylesheet" href="path/to/chameleon.css">
 ```
 
-Run the plugin
+Run the plugin.
 ```javascript
 $(document).ready(function() {
     $('.chmln').chameleon();
