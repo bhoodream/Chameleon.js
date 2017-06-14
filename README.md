@@ -9,7 +9,7 @@ A lightweight jQuery plugin for automatic content colorization.
 4. Some color manipulations (format, luminance, transparency, readable);
 5. Wrap the color in the jQuery element.
 
-## Usage
+## Installation
 
 Include jQuery and the plugin.
 ```html

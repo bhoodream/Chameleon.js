@@ -1,0 +1,27 @@
+{
+  "name": "jquery.chameleon.js",
+  "description": "A lightweight jQuery plugin for automatic content colorization.",
+  "main": "jquery.chameleon.js",
+  "authors": [
+    "Vadim Fedorov"
+  ],
+  "license": "ISC",
+  "keywords": [
+    "jQuery",
+    "chameleon",
+    "colorize",
+    "coloring",
+    "content",
+    "image",
+    "color",
+    "sort"
+  ],
+  "homepage": "https://github.com/bhoodream/Chameleon.js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}

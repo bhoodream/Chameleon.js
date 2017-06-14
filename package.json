@@ -1,0 +1,29 @@
+{
+  "name": "jquery.chameleon.js",
+  "version": "1.2.0",
+  "description": "A lightweight jQuery plugin for automatic content colorization.",
+  "main": "jquery.chameleon.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bhoodream/Chameleon.js.git"
+  },
+  "keywords": [
+    "jQuery",
+    "chameleon",
+    "colorize",
+    "coloring",
+    "content",
+    "image",
+    "color",
+    "sort"
+  ],
+  "author": "Vadim Fedorov",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bhoodream/Chameleon.js/issues"
+  },
+  "homepage": "https://github.com/bhoodream/Chameleon.js#readme"
+}
