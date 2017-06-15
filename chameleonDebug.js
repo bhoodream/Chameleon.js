@@ -134,7 +134,7 @@
                         msg: function() {
                             return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": x, "g": x, "b": x, "alpha": x}).';
                         },
-                        items: ['dummy_back', 'dummy_front', 'color', 'source_color']
+                        items: ['dummy_back', 'dummy_front', 'color', 'source_color', 'back_color']
                     },
                     {
                         type: 'boolean',

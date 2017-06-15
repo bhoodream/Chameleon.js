@@ -41,7 +41,8 @@
                 default_format: 'hex',
                 default_sorting: 'primary',
                 default_wrap_color_mode: 'tile',
-                default_wrap_arrow_mode: 'arrow'
+                default_wrap_arrow_mode: 'arrow',
+                default_rules: ['container', 'element']
             },
             canvas: {
                 side: 400
@@ -543,14 +544,22 @@
                 colorObject(lum_dir > 0 ? _s.color.white.hex : _s.color.black.hex) :
                 front_color;
         },
-        whiteOrBlackHex = function(color) {
-            if (typeof color === 'string') {
-                color = colorObject(color);
+        whiteOrBlack = function(s) {
+            var color = {};
+            
+            if (typeof s === 'string') {
+                color = colorObject(s);
+            } else if (typeof s === 'object' && s.back_color) {
+                color = s.back_color;
+            } else if (typeof s === 'object') {
+                color = $.extend({}, s);
             }
 
-            var diff_with_black = lumDiff(color, colorObject(_s.color.black.hex));
+            var black = colorObject(_s.color.black.hex),
+                white = colorObject(_s.color.white.hex),
+                diff_with_black = lumDiff(color, black);
 
-            return diff_with_black >= _s.color.readable_lum_diff ? _s.color.black.hex : _s.color.white.hex;
+            return diff_with_black >= _s.color.readable_lum_diff ? black : white;
         },
         makeColorReadable = function (back_color, limit, front_color) {
             var new_color = $.extend({}, front_color),
@@ -875,7 +884,7 @@
                                     if (s.wrap_color_mode === 'tile') {
                                         style = {
                                             'background-color': color,
-                                            'color': addHashToHex(whiteOrBlackHex(s.color))
+                                            'color': addHashToHex(whiteOrBlack(s.color).hex)
                                         };
                                     } else if (s.wrap_color_mode === 'text') {
                                         style = {
@@ -1086,8 +1095,7 @@
                 if (s.apply_colors) {
                     var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
-
-                        
+    
                         if (rule) {
                             if (typeof rule === 'function') {
                                 rule($elem, color, color_index, img_colors);
@@ -1107,14 +1115,12 @@
 
                     for (var i = 0; i < marks.length; i += 1) {
                         applyRules(s.rules.element, marks[i], item_colors[i + 1], i + 1);
-
-                        $.each(marks[i], function(index, m) {
-                            var node_name = m.nodeName.toLowerCase();
-
-                            if (s.rules.hasOwnProperty(node_name)) {
-                                applyRules(s.rules[node_name], $(m), item_colors[i + 1], i + 1);
+                        
+                        for (var key in s.rules) {
+                            if (_s.color.default_rules.indexOf(key) === -1 && s.rules.hasOwnProperty(key) && marks[i].filter(key).length) {
+                                applyRules(s.rules[key], marks[i].filter(key), item_colors[i + 1], i + 1);
                             }
-                        });
+                        }
                     }
                 }
 
@@ -1382,22 +1388,53 @@
             s = $.extend({}, getDefaultSettings(), s);
             
             $.each($elements, function() {
-                var $element = $(this);
+                var $element = $(this),
+                    i = 1,
+                    $content_item = $element.find('.' + s.content_prefix + i),
+                    removeColorize = function($el, rule) {
+                        if (typeof rule === 'function') {
+                            rule($el, null, null, null, function($elem, props) {
+                                var style = {};
+                                
+                                $.each(props, function (index, p) { style[p] = ''; });
+                                $elem.css(style);
+                            });
+                        } else {
+                            if (Array.isArray(rule)) {
+                                $.each(rule, function(index, r) {
+                                    removeColorize($el, r);
+                                });
+                            } else if (typeof rule === 'object') {
+                                $el.css(rule.prop, '');
+                            }
+                        }
+                    };
     
+    
+                removeColorize($element, s.rules.container);
+                
                 $element
-                    .css(s.rules.container.prop, '')
                     .removeClass(s.content_prefix + _s._sel._colorize_done)
                     .removeClass(s.content_prefix + _s._sel._async_colorize)
                     .find('.' + s.content_prefix + _s._sel._canvas)
                     .remove();
-    
-                var i = 1,
-                    $content_item = $element.find('.' + s.content_prefix + i);
                 
                 while ($content_item.length) {
-                    $content_item.css(s.rules.element.prop, '');
+                    removeColorize($content_item, s.rules.element);
                     $content_item = $element.find('.' + s.content_prefix + i);
                     i += 1;
+                }
+                
+                for (var key in s.rules) {
+                    if (_s.color.default_rules.indexOf(key) === -1 && s.rules.hasOwnProperty(key)) {
+                        $content_item = $element.find(key);
+                        
+                        if ($content_item.length) {
+                            $content_item.each(function(index, el) {
+                                removeColorize($(el), s.rules[key]);
+                            });
+                        }
+                    }
                 }
             });
         },
@@ -1415,7 +1452,8 @@
         getDefaultSettings: {result: getDefaultSettings},
         isColorValid: {result: isColorValid},
         fixColor: {result: fixColor},
-        getRandomColor: {result: getRandomColor}
+        getRandomColor: {result: getRandomColor},
+        whiteOrBlack: {result: whiteOrBlack}
     };
 
     actions[_s.actions.COLORIZE] = colorize;
