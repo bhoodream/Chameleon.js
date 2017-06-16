@@ -1,6 +1,6 @@
 {
   "name": "jquery.chameleon.js",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "A jQuery plugin for automatic content colorization.",
   "main": "jquery.chameleon.js",
   "scripts": {
