@@ -1,6 +1,6 @@
 # Chameleon.js
 
-A lightweight jQuery plugin for automatic content colorization.
+A jQuery plugin for automatic content colorization.
 
 ## Features
 1. Colorize the content with image;

@@ -38,6 +38,7 @@
                 readable_lum_diff: 5,
                 readable_alpha: 0.5,
                 lum_step: 0.05,
+                default_colorize_mode: 'basic',
                 default_format: 'hex',
                 default_sorting: 'primary',
                 default_wrap_color_mode: 'tile',
@@ -77,6 +78,7 @@
                 chmln: '.chmln'
             },
             _sel: {
+                _blur: '__blur',
                 _canvas: '__canvas',
                 _img: '__img',
                 _colors: '__colors',
@@ -123,7 +125,8 @@
 
             default_s[_s.actions.COLORIZE] = {
                 content_prefix: _s.content_prefix,
-                color_format: 'hex',
+                color_format: _s.color.default_format,
+                colorize_mode: _s.color.default_colorize_mode,
                 color_alpha: _s.color.alpha,
                 color_difference: _s.color.difference,
                 color_adapt_limit: _s.color.adapt_limit,
@@ -1057,6 +1060,46 @@
 
             $img.attr('crossOrigin', 'anonymous').attr('src', img_src);
         },
+        resetColorizeMode = function ($elem) {
+            $elem.find('.chmln' + _s._sel._blur).remove();
+        },
+        applyColorizeMode = function (s, $elem, main_color) {
+            if (s && $elem.length) {
+                var mode_arr = s.colorize_mode.split('.'),
+                    mode = mode_arr.slice(0, 1)[0],
+                    extra = mode_arr.slice(1);
+    
+                resetColorizeMode($elem);
+                
+                switch (mode) {
+                    case 'basic':
+                        break;
+                    case 'blur':
+                        var h = extra[0] || 'center',
+                            v = extra[1] || 'center',
+                            $blur = $('<div class="chmln' + _s._sel._blur + '"><div></div></div>');
+                        
+                        $blur
+                            .addClass('_h-' + h + ' _v-' + v)
+                            .find('> div').css({
+                                'background-image': 'url(' + s.$img.attr('src') + ')',
+                                'background-color': main_color.rgba
+                            });
+
+                        if ($elem.css('position') === 'static') $elem.css('position', 'relative');
+                        
+                        $elem.prepend($blur);
+                        
+                        $blur.siblings().each(function(index, el) {
+                            if ($(el).css('position') === 'static') $(el).css({'position': 'relative', 'z-index': 1});
+                        });
+                        
+                        break;
+                    default:
+                        // Silence
+                }
+            }
+        },
         colorizeElem = function (item_elem, img_colors, s) {
             var $elem = item_elem || [],
                 item_colors = [];
@@ -1095,7 +1138,7 @@
                 if (s.apply_colors) {
                     var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
-    
+                        
                         if (rule) {
                             if (typeof rule === 'function') {
                                 rule($elem, color, color_index, img_colors);
@@ -1156,7 +1199,9 @@
                         return getColorString({color: c, format: s.color_format}); })
                     });
                 }
-
+    
+                applyColorizeMode(s, $elem, main_color);
+    
                 $elem.addClass(clearSel(_s.sel.chmln + _s._sel._colorize_done));
             }
 
@@ -1409,8 +1454,8 @@
                             }
                         }
                     };
-    
-    
+                
+                resetColorizeMode($element);
                 removeColorize($element, s.rules.container);
                 
                 $element
@@ -1469,6 +1514,19 @@
             _s.actions.WRAPCOLOR,
             _s.actions.COLOROBJECT,
             _s.actions.SORTCOLORS
+        ],
+        'colorize_mode': [
+            'basic',
+            'blur',
+            'blur.left.center',
+            'blur.center.center',
+            'blur.right.center',
+            'blur.left.top',
+            'blur.center.top',
+            'blur.right.top',
+            'blur.left.bottom',
+            'blur.center.bottom',
+            'blur.right.bottom'
         ],
         'wrap_color_mode': ['tile', 'text'],
         'wrap_arrow_mode': ['arrow', 'gradient'],

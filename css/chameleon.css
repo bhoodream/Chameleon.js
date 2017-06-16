@@ -81,3 +81,54 @@
     padding-left: 0;
     z-index: 1;
 }
+
+/* Colorize mode */
+.chmln__blur {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 100%;
+    height: 100%;
+    filter: blur(40px);
+    opacity: .5;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.chmln__blur > div {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
+
+._h-left._v-center > div {
+    left: -30%;
+}
+._h-right._v-center > div {
+    right: -30%;
+}
+._h-left._v-top > div {
+    left: -30%;
+    top: -30%;
+}
+._h-center._v-top > div {
+    top: -30%;
+}
+._h-right._v-top > div {
+    right: -30%;
+    top: -30%;
+}
+._h-left._v-bottom > div {
+    left: -30%;
+    bottom: -30%;
+}
+._h-center._v-bottom > div {
+    bottom: -30%;
+}
+._h-right._v-bottom > div {
+    right: -30%;
+    bottom: -30%;
+}

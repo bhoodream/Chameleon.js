@@ -127,7 +127,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src']
+                        items: ['content_prefix', 'settings_type', 'sort_type', 'colorize_mode', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src']
                     },
                     {
                         type: 'color',
