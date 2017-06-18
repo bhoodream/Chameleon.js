@@ -83,18 +83,17 @@
 }
 
 /* Colorize mode */
-.chmln__blur {
+.chmln__colorize-mode {
     position: absolute;
     top: 0px;
     right: 0px;
     width: 100%;
     height: 100%;
-    opacity: .5;
     overflow: hidden;
     z-index: 0;
 }
 
-.chmln__blur > div {
+.chmln__colorize-mode > div {
     position: relative;
     width: 100%;
     height: 100%;

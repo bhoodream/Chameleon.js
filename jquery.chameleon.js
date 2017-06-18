@@ -78,7 +78,7 @@
                 chmln: '.chmln'
             },
             _sel: {
-                _blur: '__blur',
+                _colorize_mode: '__colorize-mode',
                 _canvas: '__canvas',
                 _img: '__img',
                 _colors: '__colors',
@@ -1061,56 +1061,54 @@
             $img.attr('crossOrigin', 'anonymous').attr('src', img_src);
         },
         resetColorizeMode = function ($elem) {
-            $elem.find('.chmln' + _s._sel._blur).remove();
+            $elem.find('.chmln' + _s._sel._colorize_mode).remove();
         },
         applyColorizeMode = function (s, $elem, main_color) {
             if (s && $elem.length) {
                 s.colorize_mode = s.colorize_mode || _s.color.default_colorize_mode;
                 
-                var mode_arr = s.colorize_mode.split('.');
+                var mode_arr = s.colorize_mode.split('.'),
+                    mode = mode_arr[0],
+                    modes = {
+                        'basic': function () {},
+                        'blur': function (config, s, $elem, color) {
+                            var h = config[1] || 'center',
+                                v = config[2] || 'center',
+                                h_offset = Math.min(100, config[3] || 30),
+                                v_offset = Math.min(100, config[4] || 30),
+                                blur_val = Math.min(100, config[5] || 40),
+                                opacity_val = Math.min(100, config[6] || 50),
+                                offset = {
+                                    'top': v === 'top' ? -v_offset + '%' : 'auto',
+                                    'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
+                                    'left': h === 'left' ? -h_offset + '%' : 'auto',
+                                    'right': h === 'right' ? -h_offset + '%' : 'auto'
+                                },
+                                $blur = $('<div class="chmln' + _s._sel._colorize_mode + '"><div></div></div>');
+    
+                            $blur
+                                .addClass('_m-' + mode + ' _h-' + h + ' _v-' + v)
+                                .css({'filter': 'blur(' + blur_val + 'px)', 'opacity': opacity_val / 100})
+                                .find('> div')
+                                .css($.extend({
+                                    'background-image': 'url(' + s.$img.attr('src') + ')',
+                                    'background-color': color.rgba
+                                }, offset));
+    
+                            if ($elem.css('position') === 'static') $elem.css('position', 'relative');
+    
+                            $elem.prepend($blur);
+    
+                            $blur.siblings().each(function(index, el) {
+                                if ($(el).css('position') === 'static') $(el).css({'position': 'relative', 'z-index': 1});
+                            });
+                        }
+                    };
     
                 resetColorizeMode($elem);
                 
-                switch (mode_arr[0]) {
-                    case 'basic':
-                        break;
-                    case 'blur':
-                        var h = mode_arr[1] || 'center',
-                            v = mode_arr[2] || 'center',
-                            h_offset = mode_arr[3] || 30,
-                            v_offset = mode_arr[4] || 30,
-                            blur_val = mode_arr[5] || 40,
-                            offset = {
-                                'top': v === 'top' ? -v_offset + '%' : 'auto',
-                                'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
-                                'left': h === 'left' ? -h_offset + '%' : 'auto',
-                                'right': h === 'right' ? -h_offset + '%' : 'auto'
-                            },
-                            $blur = $('<div class="chmln' + _s._sel._blur + '"><div></div></div>');
-        
-                        $blur
-                            .addClass('_h-' + h + ' _v-' + v)
-                            .css('filter', 'blur(' + blur_val + 'px)')
-                            .find('> div').css($.extend({
-                                'background-image': 'url(' + s.$img.attr('src') + ')',
-                                'background-color': main_color.rgba
-                            }, offset));
-        
-                        if ($elem.css('position') === 'static') $elem.css('position', 'relative');
-        
-                        $elem.prepend($blur);
-        
-                        $blur.siblings().each(function(index, el) {
-                            if ($(el).css('position') === 'static') $(el).css({'position': 'relative', 'z-index': 1});
-                        });
-        
-                        break;
-                    case 'gradient':
-                        var gradient_mode = s.colorize_mode.replace('gradient.', '');
-                        
-                        break;
-                    default:
-                        // Silence
+                if (modes.hasOwnProperty(mode)) {
+                    modes[mode](mode_arr, s, $elem, main_color);
                 }
             } else {
                 logger(['applyColorizeMode: s or $elem is missed'], 'warn');
@@ -1539,8 +1537,7 @@
     _s.possible_values = {
         'colorize_mode': [
             'basic',
-            'blur.(left|center|right).(top|center|bottom).[0-9]*%.[0-9]*px',
-            'gradient'
+            'blur.(H-dir: left|center|right).(V-dir: top|center|bottom).(H-offset: 0-100%).(V-offset: 0-100%).(Intensity: 0-100px).(Opacity: 0-100)'
         ],
     };
     _s.can_be_empty = ['source_color', 'alpha', 'img_src', 'color_html', 'source_color_html'];
