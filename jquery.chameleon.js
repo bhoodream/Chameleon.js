@@ -40,7 +40,7 @@
                 lum_step: 0.05,
                 default_colorize_mode: 'basic',
                 default_format: 'hex',
-                default_sorting: 'primary',
+                default_sorting: 'disabled',
                 default_wrap_color_mode: 'tile',
                 default_wrap_arrow_mode: 'arrow',
                 default_rules: ['container', 'element']
@@ -148,7 +148,7 @@
             };
 
             default_s[_s.actions.GETIMAGECOLORS] = {
-                sort_type: 'primary',
+                sort_type: 'disabled',
                 color_format: 'hex',
                 img_src: '',
                 color_alpha: _s.color.alpha,
@@ -931,7 +931,7 @@
                 s.sort_type = s.sort_type || _s.color.default_sorting;
 
                 var sort = function(type, colors) {
-                    if (type === 'primary') {
+                    if (type === 'disabled') {
                         return colors;
                     } else {
                         return colors.sort(function(a, b) {
@@ -1530,7 +1530,7 @@
         ],
         'wrap_color_mode': ['tile', 'text'],
         'wrap_arrow_mode': ['arrow', 'gradient'],
-        'sort_type': ['primary', 'hue', 'sat', 'val', 'chroma', 'alpha'],
+        'sort_type': ['disabled', 'hue', 'sat', 'val', 'chroma', 'alpha'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
     
