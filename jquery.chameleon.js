@@ -1065,34 +1065,38 @@
         },
         applyColorizeMode = function (s, $elem, main_color) {
             if (s && $elem.length) {
-                var mode_arr = s.colorize_mode.split('.'),
-                    mode = mode_arr.slice(0, 1)[0],
-                    extra = mode_arr.slice(1);
+                var mode_arr = s.colorize_mode.split('.');
     
                 resetColorizeMode($elem);
                 
-                switch (mode) {
+                switch (mode_arr[0]) {
                     case 'basic':
                         break;
                     case 'blur':
-                        var h = extra[0] || 'center',
-                            v = extra[1] || 'center',
+                        var h = mode_arr[1] || 'center',
+                            v = mode_arr[2] || 'center',
                             $blur = $('<div class="chmln' + _s._sel._blur + '"><div></div></div>');
-                        
+        
                         $blur
                             .addClass('_h-' + h + ' _v-' + v)
                             .find('> div').css({
-                                'background-image': 'url(' + s.$img.attr('src') + ')',
-                                'background-color': main_color.rgba
-                            });
-
+                            'background-image': 'url(' + s.$img.attr('src') + ')',
+                            'background-color': main_color.rgba
+                        });
+        
                         if ($elem.css('position') === 'static') $elem.css('position', 'relative');
-                        
+        
                         $elem.prepend($blur);
-                        
+        
                         $blur.siblings().each(function(index, el) {
                             if ($(el).css('position') === 'static') $(el).css({'position': 'relative', 'z-index': 1});
                         });
+        
+                        break;
+                    case 'gradient':
+                        var gradient_mode = s.colorize_mode.replace('gradient.', '');
+                        
+                        console.log(gradient_mode);
                         
                         break;
                     default:
@@ -1518,14 +1522,14 @@
         'colorize_mode': [
             'basic',
             'blur',
-            'blur.left.center',
-            'blur.center.center',
-            'blur.right.center',
             'blur.left.top',
-            'blur.center.top',
-            'blur.right.top',
+            'blur.left.center',
             'blur.left.bottom',
+            'blur.center.top',
+            'blur.center.center',
             'blur.center.bottom',
+            'blur.right.top',
+            'blur.right.center',
             'blur.right.bottom'
         ],
         'wrap_color_mode': ['tile', 'text'],
