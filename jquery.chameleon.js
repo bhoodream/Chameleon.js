@@ -1077,14 +1077,24 @@
                     case 'blur':
                         var h = mode_arr[1] || 'center',
                             v = mode_arr[2] || 'center',
+                            h_offset = mode_arr[3] || 30,
+                            v_offset = mode_arr[4] || 30,
+                            blur_val = mode_arr[5] || 40,
+                            offset = {
+                                'top': v === 'top' ? -v_offset + '%' : 'auto',
+                                'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
+                                'left': h === 'left' ? -h_offset + '%' : 'auto',
+                                'right': h === 'right' ? -h_offset + '%' : 'auto'
+                            },
                             $blur = $('<div class="chmln' + _s._sel._blur + '"><div></div></div>');
         
                         $blur
                             .addClass('_h-' + h + ' _v-' + v)
-                            .find('> div').css({
-                            'background-image': 'url(' + s.$img.attr('src') + ')',
-                            'background-color': main_color.rgba
-                        });
+                            .css('filter', 'blur(' + blur_val + 'px)')
+                            .find('> div').css($.extend({
+                                'background-image': 'url(' + s.$img.attr('src') + ')',
+                                'background-color': main_color.rgba
+                            }, offset));
         
                         if ($elem.css('position') === 'static') $elem.css('position', 'relative');
         
@@ -1529,7 +1539,7 @@
     _s.possible_values = {
         'colorize_mode': [
             'basic',
-            'blur.(left|center|right).(top|center|bottom)',
+            'blur.(left|center|right).(top|center|bottom).[0-9]*%.[0-9]*px',
             'gradient'
         ],
     };
