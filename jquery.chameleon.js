@@ -1065,6 +1065,8 @@
         },
         applyColorizeMode = function (s, $elem, main_color) {
             if (s && $elem.length) {
+                s.colorize_mode = s.colorize_mode || _s.color.default_colorize_mode;
+                
                 var mode_arr = s.colorize_mode.split('.');
     
                 resetColorizeMode($elem);
@@ -1096,12 +1098,12 @@
                     case 'gradient':
                         var gradient_mode = s.colorize_mode.replace('gradient.', '');
                         
-                        console.log(gradient_mode);
-                        
                         break;
                     default:
                         // Silence
                 }
+            } else {
+                logger(['applyColorizeMode: s or $elem is missed'], 'warn');
             }
         },
         colorizeElem = function (item_elem, img_colors, s) {

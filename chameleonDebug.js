@@ -239,7 +239,7 @@
                         });
                     },
                     stringValidation: function(val, prop) {
-                        return fixVal(val, prop, typeof val === 'string', function(v) {
+                        return fixVal(val, prop, val && typeof val === 'string', function(v) {
                             return String(v);
                         });
                     },
