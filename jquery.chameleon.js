@@ -1519,25 +1519,18 @@
             _s.actions.COLOROBJECT,
             _s.actions.SORTCOLORS
         ],
-        'colorize_mode': [
-            'basic',
-            'blur',
-            'blur.left.top',
-            'blur.left.center',
-            'blur.left.bottom',
-            'blur.center.top',
-            'blur.center.center',
-            'blur.center.bottom',
-            'blur.right.top',
-            'blur.right.center',
-            'blur.right.bottom'
-        ],
         'wrap_color_mode': ['tile', 'text'],
         'wrap_arrow_mode': ['arrow', 'gradient'],
         'sort_type': ['disabled', 'hue', 'sat', 'val', 'chroma', 'alpha'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
-    
+    _s.possible_values = {
+        'colorize_mode': [
+            'basic',
+            'blur.(left|center|right).(top|center|bottom)',
+            'gradient'
+        ],
+    };
     _s.can_be_empty = ['source_color', 'alpha', 'img_src', 'color_html', 'source_color_html'];
     _s.settings_dependencies = {
         'wrap_arrow_mode': {'depend': [{'val': 'gradient', 'prop': 'wrap_color_mode', 'prop_val': ['tile']}]
