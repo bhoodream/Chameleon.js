@@ -10,7 +10,7 @@ A jQuery plugin for automatic content colorization.
 5. Wrap the color in the jQuery element.
 
 ## Installation
-Download directly from here or install via [npm](https://www.npmjs.com/package/jquery.chameleon.js)/[Bower](http://bower.io/search/?q=jquery.chameleon.js).
+Download directly from [GitHub](https://github.com/bhoodream/Chameleon.js) or install via [npm](https://www.npmjs.com/package/jquery.chameleon.js)/[Bower](http://bower.io/search/?q=jquery.chameleon.js).
 
 Include jQuery and the plugin.
 ```html

@@ -107,6 +107,9 @@
 ._h-left._v-center > div {
     left: -30%;
 }
+._h-center._v-center > div {
+
+}
 ._h-right._v-center > div {
     right: -30%;
 }
