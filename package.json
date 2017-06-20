@@ -12,13 +12,17 @@
   },
   "keywords": [
     "jQuery",
+    "jquery-plugin",
     "chameleon",
+    "chameleon.js",
     "colorize",
     "coloring",
     "content",
     "image",
     "color",
-    "sort"
+    "colors",
+    "sort colors",
+    "validate colors"
   ],
   "author": "Vadim Fedorov",
   "license": "ISC",
