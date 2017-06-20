@@ -127,7 +127,7 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_type', 'colorize_mode', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src']
+                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src', 'colorize_mode_name']
                     },
                     {
                         type: 'color',
@@ -155,14 +155,14 @@
                         msg: function() {
                             return 'Should be an object.';
                         },
-                        items: ['$img', 'content', 'rules', 'settings_values']
+                        items: ['$img', 'content', 'rules', 'colorize_mode', 'settings_values']
                     },
                     {
                         type: 'function',
                         msg: function() {
                             return 'Should be a function.';
                         },
-                        items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError']
+                        items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError', 'colorizeModeApply', 'colorizeModeRemove']
                     }
                 ],
                 fixColor = function(color) {

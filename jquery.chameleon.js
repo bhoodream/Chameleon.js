@@ -18,6 +18,7 @@
             content_prefix: 'chmln',
             actions: {
                 COLORIZE: 'colorize',
+                REGISTERCOLORIZEMODE: 'registerColorizeMode',
                 GETIMAGECOLORS: 'getImageColors',
                 WRAPCOLOR: 'wrapColor',
                 COLOROBJECT: 'colorObject',
@@ -88,7 +89,14 @@
             $: {},
             tpl: {}
         },
-        _d = {},
+        _d = {
+            colorize_modes: {
+                'basic': {
+                    'apply': function () {},
+                    'remove': function () {}
+                }
+            }
+        },
         _f = {
             skip_validation: false
         };
@@ -117,6 +125,7 @@
             return s;
         },
         get_s = function() { return $.extend({}, _s); },
+        get_d = function() { return $.extend({}, _d); },
         getDefaultSettings = function(s) {
             s = s || {};
 
@@ -126,7 +135,6 @@
             default_s[_s.actions.COLORIZE] = {
                 content_prefix: _s.content_prefix,
                 color_format: _s.color.default_format,
-                colorize_mode: _s.color.default_colorize_mode,
                 color_alpha: _s.color.alpha,
                 color_difference: _s.color.difference,
                 color_adapt_limit: _s.color.adapt_limit,
@@ -142,6 +150,7 @@
                 dummy_front: _s.color.black.hex,
                 content: {root: 'body', items: []},
                 rules: {'container': {'prop': 'background-color'}, 'element': {'prop': 'color'}},
+                colorize_mode: {'name': _s.color.default_colorize_mode, 'config': ''},
                 afterColorized: function(item_colors, s) {},
                 beforeAsyncColorized: function(s) {},
                 afterAsyncColorized: function(s) {}
@@ -872,7 +881,7 @@
                                     if (s.wrap_arrow_mode === 'gradient' && s.wrap_color_mode === 'tile') {
                                         s.$elem.css({
                                             'color': 'transparent',
-                                            'background-image': 'linear-gradient(to right, ' + addHashToHex(s.source_color.hex) + ', ' + addHashToHex(color) + ')'
+                                            'background-image': 'linear-gradient(to right, ' + addHashToHex(s.source_color.hex) + ', ' + color + ')'
                                         });
                                     }
                                 } else {
@@ -1060,58 +1069,27 @@
 
             $img.attr('crossOrigin', 'anonymous').attr('src', img_src);
         },
-        resetColorizeMode = function ($elem) {
-            $elem.find('.chmln' + _s._sel._colorize_mode).remove();
+        registerColorizeMode = function(s) {
+            s = s || {};
+            
+            if (typeof s.colorize_mode_name === 'string') {
+                _d.colorize_modes[s.colorize_mode_name] = {};
+                _d.colorize_modes[s.colorize_mode_name].apply = s.colorizeModeApply || function () {};
+                _d.colorize_modes[s.colorize_mode_name].remove = s.colorizeModeRemove || function () {};
+            } else {
+                logger(['registerColorizeMode: colorize_mode_name  is missed'], 'warn');
+            }
         },
-        applyColorizeMode = function (s, $elem, main_color) {
+        toggleColorizeMode = function (action, s, $elem, item_colors) {
             if (s && $elem.length) {
-                s.colorize_mode = s.colorize_mode || _s.color.default_colorize_mode;
+                var mode = s.colorize_mode ? s.colorize_mode.name : _s.color.default_colorize_mode;
                 
-                var mode_arr = s.colorize_mode.split('.'),
-                    mode = mode_arr[0],
-                    modes = {
-                        'basic': function () {},
-                        'blur': function (config, s, $elem, color) {
-                            var h = config[1] || 'center',
-                                v = config[2] || 'center',
-                                h_offset = Math.min(100, config[3] || 30),
-                                v_offset = Math.min(100, config[4] || 30),
-                                blur_val = Math.min(100, config[5] || 40),
-                                opacity_val = Math.min(100, config[6] || 50),
-                                offset = {
-                                    'top': v === 'top' ? -v_offset + '%' : 'auto',
-                                    'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
-                                    'left': h === 'left' ? -h_offset + '%' : 'auto',
-                                    'right': h === 'right' ? -h_offset + '%' : 'auto'
-                                },
-                                $blur = $('<div class="chmln' + _s._sel._colorize_mode + '"><div></div></div>');
-    
-                            $blur
-                                .addClass('_m-' + mode + ' _h-' + h + ' _v-' + v)
-                                .css({'filter': 'blur(' + blur_val + 'px)', 'opacity': opacity_val / 100})
-                                .find('> div')
-                                .css($.extend({
-                                    'background-image': 'url(' + s.$img.attr('src') + ')',
-                                    'background-color': color.rgba
-                                }, offset));
-    
-                            if ($elem.css('position') === 'static') $elem.css('position', 'relative');
-    
-                            $elem.prepend($blur);
-    
-                            $blur.siblings().each(function(index, el) {
-                                if ($(el).css('position') === 'static') $(el).css({'position': 'relative', 'z-index': 1});
-                            });
-                        }
-                    };
-    
-                resetColorizeMode($elem);
-                
-                if (modes.hasOwnProperty(mode)) {
-                    modes[mode](mode_arr, s, $elem, main_color);
+                if (_d.colorize_modes.hasOwnProperty(mode)) {
+                    console.log(mode, _d.colorize_modes[mode], action);
+                    _d.colorize_modes[mode][action](mode, s.colorize_mode.config, s, $elem, item_colors);
                 }
             } else {
-                logger(['applyColorizeMode: s or $elem is missed'], 'warn');
+                logger(['toggleColorizeMode: s or $elem is missed'], 'warn');
             }
         },
         colorizeElem = function (item_elem, img_colors, s) {
@@ -1214,7 +1192,7 @@
                     });
                 }
     
-                applyColorizeMode(s, $elem, main_color);
+                toggleColorizeMode('apply', s, $elem, item_colors);
     
                 $elem.addClass(clearSel(_s.sel.chmln + _s._sel._colorize_done));
             }
@@ -1469,7 +1447,7 @@
                         }
                     };
                 
-                resetColorizeMode($element);
+                toggleColorizeMode('remove', s, $element);
                 removeColorize($element, s.rules.container);
                 
                 $element
@@ -1507,6 +1485,7 @@
         stopColorize: stopColorize,
         decolorize: decolorize,
         get_s: {result: get_s},
+        get_d: {result: get_d},
         skipValidation: {result: skipValidation},
         getDefaultSettings: {result: getDefaultSettings},
         isColorValid: {result: isColorValid},
@@ -1516,6 +1495,7 @@
     };
 
     actions[_s.actions.COLORIZE] = colorize;
+    actions[_s.actions.REGISTERCOLORIZEMODE] = registerColorizeMode;
     actions[_s.actions.GETIMAGECOLORS] = getImageColors;
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
     actions[_s.actions.COLOROBJECT] = {result: colorObject};
@@ -1534,15 +1514,10 @@
         'sort_type': ['disabled', 'hue', 'sat', 'val', 'chroma', 'alpha'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
-    _s.possible_values = {
-        'colorize_mode': [
-            'basic',
-            'blur.(H-dir: left|center|right).(V-dir: top|center|bottom).(H-offset: 0-100%).(V-offset: 0-100%).(Intensity: 0-100px).(Opacity: 0-100)'
-        ],
-    };
     _s.can_be_empty = ['source_color', 'alpha', 'img_src', 'color_html', 'source_color_html'];
     _s.settings_dependencies = {
-        'wrap_arrow_mode': {'depend': [{'val': 'gradient', 'prop': 'wrap_color_mode', 'prop_val': ['tile']}]
+        'wrap_arrow_mode': {
+            'depend': [{'val': 'gradient', 'prop': 'wrap_color_mode', 'prop_val': ['tile']}]
         }
     };
 

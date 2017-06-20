@@ -81,23 +81,3 @@
     padding-left: 0;
     z-index: 1;
 }
-
-/* Colorize mode */
-.chmln__colorize-mode {
-    position: absolute;
-    top: 0px;
-    right: 0px;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    z-index: 0;
-}
-
-.chmln__colorize-mode > div {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: cover;
-}
