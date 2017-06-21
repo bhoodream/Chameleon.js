@@ -1085,7 +1085,6 @@
                 var mode = s.colorize_mode ? s.colorize_mode.name : _s.color.default_colorize_mode;
                 
                 if (_d.colorize_modes.hasOwnProperty(mode)) {
-                    console.log(mode, _d.colorize_modes[mode], action);
                     _d.colorize_modes[mode][action](mode, s.colorize_mode.config, s, $elem, item_colors);
                 }
             } else {
