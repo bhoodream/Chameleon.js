@@ -18,6 +18,11 @@ Include jQuery and the plugin.
 <script src="path/to/jquery.chameleon.js"></script>
 ```
 
+If you need colorize modes, include it.
+```html
+<script src="path/to/colorize/mode.js"></script>
+```
+
 If you need debug, include it.
 ```html
 <script src="path/to/chameleonDebug.js"></script>

@@ -18,6 +18,7 @@
             content_prefix: 'chmln',
             actions: {
                 COLORIZE: 'colorize',
+                GETCOLORIZEMODE: 'getColorizeMode',
                 REGISTERCOLORIZEMODE: 'registerColorizeMode',
                 GETIMAGECOLORS: 'getImageColors',
                 WRAPCOLOR: 'wrapColor',
@@ -90,12 +91,7 @@
             tpl: {}
         },
         _d = {
-            colorize_modes: {
-                'basic': {
-                    'apply': function () {},
-                    'remove': function () {}
-                }
-            }
+            colorize_modes: {}
         },
         _f = {
             skip_validation: false
@@ -150,7 +146,7 @@
                 dummy_front: _s.color.black.hex,
                 content: {root: 'body', items: []},
                 rules: {'container': {'prop': 'background-color'}, 'element': {'prop': 'color'}},
-                colorize_mode: {'name': _s.color.default_colorize_mode, 'config': ''},
+                colorize_mode: {'name': _s.color.default_colorize_mode, 'config': {}},
                 afterColorized: function(item_colors, s) {},
                 beforeAsyncColorized: function(s) {},
                 afterAsyncColorized: function(s) {}
@@ -1069,11 +1065,19 @@
 
             $img.attr('crossOrigin', 'anonymous').attr('src', img_src);
         },
+        getColorizeMode = function(name) {
+            if (_d.colorize_modes.hasOwnProperty(name)) {
+                return _d.colorize_modes[name];
+            } else {
+                logger(['getColorizeMode: unknown colorize mode name', name], 'warn');
+            }
+        },
         registerColorizeMode = function(s) {
             s = s || {};
             
             if (typeof s.colorize_mode_name === 'string') {
                 _d.colorize_modes[s.colorize_mode_name] = {};
+                _d.colorize_modes[s.colorize_mode_name].mode = s;
                 _d.colorize_modes[s.colorize_mode_name].apply = s.colorizeModeApply || function () {};
                 _d.colorize_modes[s.colorize_mode_name].remove = s.colorizeModeRemove || function () {};
             } else {
@@ -1082,10 +1086,10 @@
         },
         toggleColorizeMode = function (action, s, $elem, item_colors) {
             if (s && $elem.length) {
-                var mode = s.colorize_mode ? s.colorize_mode.name : _s.color.default_colorize_mode;
+                var mode_name = s.colorize_mode ? s.colorize_mode.name : _s.color.default_colorize_mode;
                 
-                if (_d.colorize_modes.hasOwnProperty(mode)) {
-                    _d.colorize_modes[mode][action](mode, s.colorize_mode.config, s, $elem, item_colors);
+                if (_d.colorize_modes.hasOwnProperty(mode_name)) {
+                    _d.colorize_modes[mode_name][action](mode_name, s.colorize_mode.config, s, $elem, item_colors);
                 }
             } else {
                 logger(['toggleColorizeMode: s or $elem is missed'], 'warn');
@@ -1126,7 +1130,7 @@
                     }
                 }
 
-                if (s.apply_colors) {
+                if (s.apply_colors && s.rules) {
                     var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
                         
@@ -1496,6 +1500,7 @@
     actions[_s.actions.COLORIZE] = colorize;
     actions[_s.actions.REGISTERCOLORIZEMODE] = registerColorizeMode;
     actions[_s.actions.GETIMAGECOLORS] = getImageColors;
+    actions[_s.actions.GETCOLORIZEMODE] = {result: getColorizeMode};
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
     actions[_s.actions.COLOROBJECT] = {result: colorObject};
     actions[_s.actions.SORTCOLORS] = {result: sortColors};
@@ -1519,6 +1524,12 @@
             'depend': [{'val': 'gradient', 'prop': 'wrap_color_mode', 'prop_val': ['tile']}]
         }
     };
+
+    registerColorizeMode({
+        'colorize_mode_name': 'basic',
+        'colorizeModeApply': function () {},
+        'colorizeModeRemove': function () {}
+    });
 
     $.fn.chameleon = function (action, settings) {
         var $elements = $(this),
