@@ -1,0 +1,22 @@
+.chmln__blur-img-overlay {
+    position: absolute;
+    top: 0px;
+    right: 0px;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    transition: background-color .3s;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.chmln__blur-img-overlay > div {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+}
