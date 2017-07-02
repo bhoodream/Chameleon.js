@@ -40,6 +40,7 @@
                 readable_lum_diff: 5,
                 readable_alpha: 0.5,
                 lum_step: 0.05,
+                colors_skip: 0,
                 default_colorize_mode: 'basic',
                 default_format: 'hex',
                 default_sorting: 'disabled',
@@ -74,6 +75,10 @@
                 canvas_side: {
                     min: 50,
                     max: 10000
+                },
+                colors_skip: {
+                    min: 0,
+                    max: 1000
                 }
             },
             sel: {
@@ -135,6 +140,7 @@
                 color_difference: _s.color.difference,
                 color_adapt_limit: _s.color.adapt_limit,
                 canvas_side: _s.canvas.side,
+                colors_skip: _s.color.colors_skip,
                 debug: false,
                 async_colorize: false,
                 apply_colors: true,
@@ -1100,9 +1106,13 @@
                 item_colors = [];
 
             if ($elem.length) {
+                var all_colors = img_colors.slice();
+
+                if (s.colors_skip) img_colors = img_colors.slice(s.colors_skip);
+
                 var marks = [],
                     main_color = img_colors[0] || colorObject(s.dummy_back),
-                    mark_amt_affix = 1,
+                    mark_amt_affix =  1,
                     cur_marks = $elem.find(_s.sel.chmln + mark_amt_affix);
 
                 item_colors.push(main_color);
@@ -1162,6 +1172,10 @@
                     }
                 }
 
+                if (s.all_colors) {
+                    item_colors = item_colors.concat(img_colors.slice(item_colors.length));
+                }
+
                 if (s.insert_colors) {
                     var $colors_container = $elem.find(_s.sel.chmln + _s._sel._colors);
 
@@ -1172,21 +1186,13 @@
                         $elem.append($colors_container);
                     }
 
-                    $.each(img_colors, function (index, item) {
-                        if (index === 0) {
-                            $colors_container.append(wrapColor({color: main_color, color_format: s.color_format}));
-                        } else {
-                            if (item_colors[index]) {
-                                $colors_container.append(wrapColor({color: item_colors[index], source_color: item, color_format: s.color_format}));
-                            } else if (s.all_colors) {
-                                $colors_container.append(wrapColor({color: item, color_format: s.color_format}));
-                            }
-                        }
+                    $.each(item_colors, function (index, item) {
+                        $colors_container.append(wrapColor({
+                            color: item,
+                            source_color: all_colors[s.colors_skip + index],
+                            color_format: s.color_format
+                        }));
                     });
-                }
-
-                if (s.all_colors) {
-                    item_colors = item_colors.concat(img_colors.slice(item_colors.length));
                 }
 
                 if (s.data_colors) {
@@ -1518,7 +1524,7 @@
         'sort_type': ['disabled', 'hue', 'sat', 'val', 'chroma', 'alpha'],
         'color_format': ['hex', 'rgb', 'rgba']
     };
-    _s.can_be_empty = ['source_color', 'alpha', 'img_src', 'color_html', 'source_color_html'];
+    _s.can_be_empty = ['alpha', 'colors_skip', 'img_src', 'source_color', 'color_html', 'source_color_html'];
     _s.settings_dependencies = {
         'wrap_arrow_mode': {
             'depend': [{'val': 'gradient', 'prop': 'wrap_color_mode', 'prop_val': ['tile']}]

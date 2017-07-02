@@ -13,7 +13,8 @@
                     blur_val = Math.min(100, config.blur_val || 40),
                     opacity_val = Math.min(100, config.opacity || 50),
                     overflow = config.overflow || '',
-                    hover = config.hover || '',
+                    modify_position = config.modify_position || false,
+                    events = config.events || '',
                     offset = {
                         'top': v === 'top' ? -v_offset + '%' : 'auto',
                         'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
@@ -21,30 +22,32 @@
                         'right': h === 'right' ? -h_offset + '%' : 'auto'
                     },
                     $blur = $('<div class="chmln__blur-img-overlay">'),
-                    $blur_inner = $('<div>');
+                    $blur_color = $('<div>'),
+                    $blur_img = $('<div>');
 
-                $blur
-                    .append($blur_inner)
-                    .css({'filter': 'blur(' + blur_val + 'px)', 'opacity': opacity_val / 100});
+                $blur_color.css($.extend({'background-color': color.rgba, 'opacity': opacity_val / 100}, offset))
+                $blur_img.css($.extend({'background-image': 'url(' + s.$img.attr('src') + ')', 'opacity': opacity_val / 100}, offset))
+                $blur.append($blur_color).append($blur_img).css({'filter': 'blur(' + blur_val + 'px)'});
 
-                $blur_inner.css($.extend({
-                    'background-image': 'url(' + s.$img.attr('src') + ')',
-                    'background-color': color.rgba
-                }, offset));
-
-                if ($elem.css('position') === 'static') $elem.css('position', 'relative');
+                if ($elem.css('position') === 'static' && modify_position) $elem.css('position', 'relative');
                 if (overflow) $elem.css('overflow', overflow);
-                if (hover && typeof hover === 'function') hover($elem);
+                if (events) {
+                    if (typeof events === 'object') {
+                        $elem.on(events)
+                    } else if (typeof events === 'function') {
+                        events($elem, $blur, item_colors);
+                    }
+                };
 
                 $elem.prepend($blur);
 
-                $blur.siblings().each(function(index, el) {
-                    if ($(el).css('position') === 'static') {
-                        $(el)
-                            .css({'position': 'relative', 'z-index': 1})
-                            .attr('data-old_position', 'static');
-                    }
-                });
+                if (modify_position) {
+                    $blur.siblings().each(function(index, el) {
+                        if ($(el).css('position') === 'static') {
+                            $(el).css({'position': 'relative', 'z-index': 1}).attr('data-old_position', 'static');
+                        }
+                    });
+                }
             },
             'colorizeModeRemove': function (mode_name, config, s, $elem, item_colors) {
                 var $blur = $elem.find('.chmln__blur-img-overlay');

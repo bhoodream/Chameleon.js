@@ -120,7 +120,7 @@
                         msg: function(prop) {
                             return 'Should be a number.' + ' Min: ' + _s.limits[prop].min + ', max: ' + _s.limits[prop].max + '.';
                         },
-                        items: ['color_alpha', 'alpha', 'color_difference', 'color_adapt_limit', 'canvas_side']
+                        items: ['color_alpha', 'alpha', 'color_difference', 'color_adapt_limit', 'canvas_side', 'colors_skip']
                     },
                     {
                         type: 'string',
