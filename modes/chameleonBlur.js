@@ -6,31 +6,25 @@
                 config = config || {};
 
                 var color = item_colors[0] ? item_colors[0] : 'transparent',
-                    h = config.h_pos || 'center',
-                    v = config.v_pos || 'center',
-                    h_offset = Math.min(100, config.h_offset || 30),
-                    v_offset = Math.min(100, config.v_offset || 30),
-                    blur_val = Math.min(100, config.blur_val || 40),
-                    opacity_val = Math.min(100, config.opacity || 50),
-                    overflow = config.overflow || '',
+                    img_css = config.img_css || '',
+                    blur_val = Math.min(100, config.blur_val || 0),
+                    opacity_val = Math.min(100, config.opacity || 0),
                     modify_position = config.modify_position || false,
                     events = config.events || '',
-                    offset = {
-                        'top': v === 'top' ? -v_offset + '%' : 'auto',
-                        'bottom': v === 'bottom' ? -v_offset + '%' : 'auto',
-                        'left': h === 'left' ? -h_offset + '%' : 'auto',
-                        'right': h === 'right' ? -h_offset + '%' : 'auto'
-                    },
-                    $blur = $('<div class="chmln__blur-img-overlay">'),
-                    $blur_color = $('<div>'),
-                    $blur_img = $('<div>');
+                    offset = {},
+                    $blur = $('<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">'),
+                    $blur_img = $('<img src="' + s.$img.attr('src')  + '" style="position: absolute; ' + img_css + '" alt="chameleonBur image">');
 
-                $blur_color.css($.extend({'background-color': color.rgba, 'opacity': opacity_val / 100}, offset))
-                $blur_img.css($.extend({'background-image': 'url(' + s.$img.attr('src') + ')', 'opacity': opacity_val / 100}, offset))
-                $blur.append($blur_color).append($blur_img).css({'filter': 'blur(' + blur_val + 'px)'});
+                $blur_img.css({'filter': 'blur(' + blur_val + 'px)'});
+                $blur.append($blur_img)
 
-                if ($elem.css('position') === 'static' && modify_position) $elem.css('position', 'relative');
-                if (overflow) $elem.css('overflow', overflow);
+                if (config.overflow_hidden) $blur.css({'overflow': 'hidden'});
+                if (modify_position) {
+                    if ($elem.css('position') === 'static') {
+                        $elem.attr('data-old_position', $elem.css('position')).css('position', 'relative');
+                    }
+                }
+
                 if (events) {
                     if (typeof events === 'object') {
                         $elem.on(events)
@@ -52,14 +46,30 @@
             'colorizeModeRemove': function (mode_name, config, s, $elem, item_colors) {
                 var $blur = $elem.find('.chmln__blur-img-overlay');
 
+                if ($elem.attr('data-old_position')) {
+                    $elem.css('position', $elem.attr('data-old_position')).removeAttr('data-old_position');
+                }
+
+                if (config.events) {
+                    if (typeof config.events === 'object') {
+                        $.each(config.events, function (e_name, e_handler) {
+                            $elem.off(e_name, e_handler);
+                        });
+                    } else if (typeof config.events === 'function') {
+                        config.events($elem, $blur, item_colors, true);
+                    }
+                };
+
                 $blur.siblings()
                     .filter('[data-old_position]')
-                    .each(function (index, elem) {$(el).css('position', '');})
+                    .each(function (index, elem) { $(el).css('position', ''); });
 
                 $blur.remove();
             }
         };
 
-        $.fn.chameleon("registerColorizeMode", mode);
+        if (typeof $.fn.chameleon === 'function') {
+            $.fn.chameleon("registerColorizeMode", mode);
+        }
     }
 })(jQuery);
