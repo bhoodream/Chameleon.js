@@ -12,7 +12,7 @@
                     modify_position = config.modify_position || false,
                     events = config.events || '',
                     offset = {},
-                    $blur = $('<div style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">'),
+                    $blur = $('<div class="chmln__blur-img-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;">'),
                     $blur_img = $('<img src="' + s.$img.attr('src')  + '" style="position: absolute; ' + img_css + '" alt="chameleonBur image">');
 
                 $blur_img.css({'filter': 'blur(' + blur_val + 'px)'});
