@@ -1439,12 +1439,7 @@
                     $content_item = $element.find('.' + s.content_prefix + i),
                     removeColorize = function($el, rule) {
                         if (typeof rule === 'function') {
-                            rule($el, null, null, null, function($elem, props) {
-                                var style = {};
-                                
-                                $.each(props, function (index, p) { style[p] = ''; });
-                                $elem.css(style);
-                            });
+                            rule($el, null, null, null, true);
                         } else {
                             if (Array.isArray(rule)) {
                                 $.each(rule, function(index, r) {
