@@ -1075,7 +1075,7 @@
             if (_d.colorize_modes.hasOwnProperty(name)) {
                 return _d.colorize_modes[name];
             } else {
-                logger(['getColorizeMode: unknown colorize mode name', name], 'warn');
+                logger(['getColorizeMode: unknown colorization mode name', name], 'warn');
             }
         },
         registerColorizeMode = function(s) {
@@ -1092,11 +1092,15 @@
         },
         toggleColorizeMode = function (action, s, $elem, item_colors) {
             if (s && $elem.length) {
-                var mode_name = s.colorize_mode ? s.colorize_mode.name : _s.color.default_colorize_mode;
-                
-                if (_d.colorize_modes.hasOwnProperty(mode_name)) {
-                    _d.colorize_modes[mode_name][action](mode_name, s.colorize_mode.config, s, $elem, item_colors);
-                }
+                s.colorize_mode = s.colorize_mode || _s.color.default_colorize_mode;
+
+                if (!Array.isArray(s.colorize_mode)) s.colorize_mode = [$.extend({}, s.colorize_mode)];
+
+                $.each(s.colorize_mode, function(index, mode) {
+                    if (_d.colorize_modes.hasOwnProperty(mode.name)) {
+                        _d.colorize_modes[mode.name][action](mode.name, mode.config, s, $elem, item_colors);
+                    }
+                });
             } else {
                 logger(['toggleColorizeMode: s or $elem is missed'], 'warn');
             }

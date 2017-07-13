@@ -18,9 +18,9 @@ Include jQuery and the plugin.
 <script src="path/to/jquery.chameleon.js"></script>
 ```
 
-If you need colorize modes, include it.
+If you need colorization modes, include it.
 ```html
-<script src="path/to/colorize/mode.js"></script>
+<script src="path/to/colorization/mode.js"></script>
 ```
 
 If you need debug, include it.
