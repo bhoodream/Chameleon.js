@@ -127,12 +127,14 @@
                         msg: function() {
                             return 'Should be a string.';
                         },
-                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode', 'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src', 'colorize_mode_name']
+                        items: ['content_prefix', 'settings_type', 'sort_type', 'color_format', 'wrap_color_mode',
+                            'wrap_arrow_mode', 'color_html', 'source_color_html', 'img_src', 'colorize_mode_name']
                     },
                     {
                         type: 'color',
                         msg: function() {
-                            return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": x, "g": x, "b": x, "alpha": x}).';
+                            return 'Should be a color! String: hex (#xxx or #xxxxxx or xxx or xxxxxx) or rgb(x,x,x) or ' +
+                                'rgba(x,x,x,x). Array ([x, x, x, x]) or object ({"r": x, "g": x, "b": x, "alpha": x}).';
                         },
                         items: ['dummy_back', 'dummy_front', 'color', 'source_color', 'back_color']
                     },
@@ -141,7 +143,8 @@
                         msg: function() {
                             return 'Should be a boolean value: true or false.';
                         },
-                        items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors', 'insert_colors', 'data_colors']
+                        items: ['debug', 'async_colorize', 'apply_colors', 'adapt_colors', 'all_colors',
+                            'insert_colors', 'data_colors']
                     },
                     {
                         type: 'array',
@@ -162,7 +165,8 @@
                         msg: function() {
                             return 'Should be a function.';
                         },
-                        items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess', 'onGetColorsError', 'colorizeModeApply', 'colorizeModeRemove']
+                        items: ['afterColorized', 'beforeAsyncColorized', 'afterAsyncColorized', 'onGetColorsSuccess',
+                            'onGetColorsError', 'colorizeModeApply', 'colorizeModeRemove']
                     }
                 ],
                 fixColor = function(color) {
@@ -225,7 +229,8 @@
                         if (_s.limits.hasOwnProperty(prop)) {
                             is_valid = !isNaN(val) && _s.limits[prop].min <= val && val <= _s.limits[prop].max;
                         } else {
-                            logger('validateSettings/numberValidation - limits for number setting "' + prop + '" are missing!', 'warn');
+                            logger('validateSettings/numberValidation - limits for number setting "' + prop +
+                                '" are missing!', 'warn');
                         }
                     
                         return fixVal(val, prop, is_valid, function(v) {

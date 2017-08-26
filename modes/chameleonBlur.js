@@ -10,8 +10,13 @@
                     img_css = config.img_css || '',
                     blur_val = Math.min(100, config.blur_val || 0),
                     opacity_val = Math.min(100, config.opacity || 0),
-                    $blur = $(document.createElement('div')).addClass(blur_overlay).attr('style', 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;'),
-                    $blur_img = $(document.createElement('img')).attr('src', s.$img.attr('src')).attr('style', 'position: absolute; filter: blur(' + blur_val + 'px); ' + img_css).attr('alt', 'chameleonBur image');
+                    $blur = $(document.createElement('div'))
+                        .addClass(blur_overlay)
+                        .attr('style', 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;'),
+                    $blur_img = $(document.createElement('img'))
+                        .attr('src', s.$img.attr('src'))
+                        .attr('style', 'position: absolute; filter: blur(' + blur_val + 'px); ' + img_css)
+                        .attr('alt', 'chameleonBur image');
 
                 $blur.append($blur_img)
 

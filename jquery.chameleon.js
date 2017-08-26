@@ -844,11 +844,13 @@
                         return $colors;
                     } else {
                         if (!s.color) {
-                            s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format, wrap_color_mode: extra_s_wrap_color_mode, wrap_arrow_mode: extra_s_wrap_arrow_mode};
+                            s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format,
+                                wrap_color_mode: extra_s_wrap_color_mode, wrap_arrow_mode: extra_s_wrap_arrow_mode};
                         }
                     }
                 } else if (typeof s === 'string') {
-                    s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format, wrap_color_mode: extra_s_wrap_color_mode, wrap_arrow_mode: extra_s_wrap_arrow_mode};
+                    s = {color: s, source_color: extra_s_source_color, color_format: extra_s_format,
+                        wrap_color_mode: extra_s_wrap_color_mode, wrap_arrow_mode: extra_s_wrap_arrow_mode};
                 }
 
                 s.color = colorObject(s.color);
@@ -865,7 +867,8 @@
                         $source_color_elem = $('<span class="chmln__colors-elem _source">'),
                         $adapt_arrow = $('<span class="chmln__colors-arrow">'),
                         right_arrow_symbol = '&#8594',
-                        is_color_adapted = s.source_color.hex && (s.source_color.hex !== s.color.hex || s.source_color.alpha !== s.color.alpha),
+                        is_color_adapted = s.source_color.hex &&
+                            (s.source_color.hex !== s.color.hex || s.source_color.alpha !== s.color.alpha),
                         colorElem = function (s) {
                             var color = getColorString({color: s.color, format: s.format});
 
@@ -911,11 +914,15 @@
                             }
                         };
 
-                    colorElem({$elem: $color_elem, color: s.color, html: s.color_html, format: s.color_format, wrap_color_mode: s.wrap_color_mode});
+                    colorElem({$elem: $color_elem, color: s.color, html: s.color_html,
+                        format: s.color_format, wrap_color_mode: s.wrap_color_mode});
 
                     if (is_color_adapted) {
-                        colorElem({$elem: $source_color_elem, color: s.source_color, html: s.source_color_html, format: s.color_format, wrap_color_mode: s.wrap_color_mode});
-                        colorElem({$elem: $adapt_arrow, color: s.color, source_color: s.source_color, format: s.color_format, wrap_color_mode: s.wrap_color_mode, wrap_arrow_mode: s.wrap_arrow_mode, html: right_arrow_symbol});
+                        colorElem({$elem: $source_color_elem, color: s.source_color, html: s.source_color_html,
+                            format: s.color_format, wrap_color_mode: s.wrap_color_mode});
+                        colorElem({$elem: $adapt_arrow, color: s.color, source_color: s.source_color,
+                            format: s.color_format, wrap_color_mode: s.wrap_color_mode,
+                            wrap_arrow_mode: s.wrap_arrow_mode, html: right_arrow_symbol});
 
                         $color_elem.addClass('_adapted');
                         $source_color_elem.append($adapt_arrow);
@@ -1063,9 +1070,11 @@
                     }
     
                     $canvas.remove();
+                    $img.off();
                 },
                 'error': function(e) {
                     onImgError([], e, $container, s, img_src);
+                    $img.off();
                 }
             });
 
