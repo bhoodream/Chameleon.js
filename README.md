@@ -9,9 +9,7 @@ A jQuery plugin for automatic content colorization.
 4. Some color manipulations (format, luminance, transparency, readable);
 5. Wrap the color in the jQuery element.
 
-## Usage
-
-#### Install
+## Install
 Download directly from [GitHub](https://github.com/bhoodream/Chameleon.js) or install via [npm](https://www.npmjs.com/package/jquery.chameleon.js)/[Bower](http://bower.io/search/?q=jquery.chameleon.js).
 
 Include jQuery and the plugin:
@@ -28,7 +26,7 @@ import addChameleonJsToJquery from 'jquery.chameleon.js/addChameleonJsToJquery';
 addChameleonJsToJquery($);
 ```
 
-#### Debug
+## Debug
 If you need debug, include it:
 ```html
 <script src="path/to/chameleonDebug.js"></script>
@@ -48,7 +46,7 @@ $(document).ready(function() {
 });
 ```
 
-#### Modes
+## Modes
 If you need colorization modes, include it:
 ```html
 <script src="path/to/colorization/mode.js"></script>
@@ -65,21 +63,16 @@ $(document).ready(function() {
     $('.chmln').chameleon({
         colorize_mode: {
             name: "blur",
-            config: {
-              img_css: "bottom: -25%; right: -25%; width: 90%; opacity: .5;",
-              blur_val: 10,
-              overflow_hidden: true,
-              modify_position: true
-            }
+            config: {}
           }
     });
 });
 ```
 
-#### Styles
-If you need styles, include it:
+## Styles
+If you need styles for color elements, include it:
 ```html
-<link rel="stylesheet" href="path/to/chameleon.css">
+<link rel="stylesheet" href="path/to/chmln__colors.css">
 ```
 
 Or add:
@@ -87,7 +80,7 @@ Or add:
 import 'jquery.chameleon.js/css/chmln__colors.css';
 ```
 
-#### Use
+## Use
 Run the plugin:
 ```javascript
 $(document).ready(function() {
@@ -95,4 +88,4 @@ $(document).ready(function() {
 });
 ```
 
-For more information and examples check the [demo page](https://vadimfedorov.ru/lab/chameleon-js/jquery).
+For more information and examples check the [demo page](https://vadimfedorov.ru/lab/chameleon-js).

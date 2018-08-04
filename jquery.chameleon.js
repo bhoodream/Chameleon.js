@@ -7,7 +7,7 @@
  *    http://www.opensource.org/licenses/mit-license.php
  *
  * Project home:
- *    http://vadimfedorov.ru/lab/chameleon-js/jquery
+ *    http://vadimfedorov.ru/lab/chameleon-js
  */
 
 'use strict';
