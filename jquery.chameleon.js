@@ -111,18 +111,18 @@
         validateSettings = function(s, a, es) {
             if (canValidate()) {
                 chameleonDebug.init({_s: _s});
-        
+
                 var validation = chameleonDebug.validateSettings(s, a, es);
-    
+
                 s = validation.fixed_settings;
-        
+
                 if (validation.invalid.length) {
                     logger(['Bad settings are fixed!', validation.invalid], 'warn');
                 }
             }
-    
+
             _f.skip_validation = false;
-            
+
             return s;
         },
         get_s = function() { return $.extend({}, _s); },
@@ -180,13 +180,13 @@
                 source_color: _s.color.white.hex,
                 debug: false
             };
-            
+
             default_s[_s.actions.COLOROBJECT] = {
                 alpha: _s.limits.alpha.max,
                 color: _s.color.black.hex,
                 debug: false
             };
-    
+
             default_s[_s.actions.SORTCOLORS] = {
                 sort_type: _s.color.default_sorting,
                 colors: [],
@@ -208,11 +208,11 @@
                         s.$elem.attr('data-stopColorize', s.val);
                     }
                 }
-            
+
                 if (s.remove) {
                     s.$elem.removeAttr('data-stopColorize');
                 }
-            
+
                 return s.$elem.attr('data-stopColorize');
             } else {
                 logger('getStopColorize s or s.$elem not given or all $elems are already colorized!', 'warn');
@@ -220,7 +220,7 @@
         },
         setChmlnSel = function(s) {
             _s.sel.chmln = '.' + (s && s.content_prefix ? s.content_prefix : _s.content_prefix);
-            
+
             return _s.sel.chmln;
         },
         setElemAttributes = function ($elem, attrs) {
@@ -298,15 +298,15 @@
         getAlpha = function() {
             var args = [].slice.apply(arguments),
                 alpha = _s.limits.alpha.max;
-            
+
             $.each(args, function(i, a) {
                 if (typeof a !== 'undefined' && !isNaN(a)) {
                     alpha = a;
-                    
+
                     return false;
                 }
             });
-            
+
             return alpha;
         },
         convertValToPercent = function(s) {
@@ -331,7 +331,7 @@
         },
         colorObject = function(s) {
             s = s || {};
-            
+
             var r_index = 0,
                 g_index = 2,
                 b_index = 4,
@@ -341,7 +341,7 @@
                 if (Array.isArray(s)) {
                     clone_color = s.slice();
                     s = {};
-        
+
                     s.color = {
                         r: clone_color[0],
                         g: clone_color[1],
@@ -349,11 +349,11 @@
                         alpha: clone_color[3]
                     };
                 }
-                
+
                 if (typeof s.color === 'object' || typeof s.color === 'undefined') {
                     if (Array.isArray(s.color)) {
                         clone_color = s.color.slice();
-        
+
                         s.color = {
                             r: clone_color[0],
                             g: clone_color[1],
@@ -361,7 +361,7 @@
                             alpha: clone_color[3]
                         };
                     }
-                    
+
                     if (typeof s.color === 'undefined') {
                         if (typeof s.r !== 'undefined' && typeof s.g !== 'undefined' && typeof s.b !== 'undefined') {
                             clone_color = $.extend({}, s);
@@ -370,7 +370,7 @@
                             return false;
                         }
                     }
-    
+
                     r = limitRGBAValue(s.color.r);
                     g = limitRGBAValue(s.color.g);
                     b = limitRGBAValue(s.color.b);
@@ -378,9 +378,9 @@
                     hex = rgbaToHexAlpha([r, g, b, alpha]).hex;
                 } else {
                     color = colorStrToHexAlpha(s.color);
-    
+
                     if (!color.hex) return false;
-    
+
                     hex = color.hex;
                     alpha = getAlpha(s.alpha, color.alpha);
                     r = parseInt(hex.substr(r_index, 2), 16);
@@ -389,9 +389,9 @@
                 }
             } else {
                 color = colorStrToHexAlpha(s);
-    
+
                 if (!color.hex) return false;
-    
+
                 hex = color.hex;
                 alpha = getAlpha(s.alpha, color.alpha);
                 r = parseInt(hex.substr(r_index, 2), 16);
@@ -426,7 +426,7 @@
                     }
                 }
             }
-            
+
             if (typeof alpha !== 'undefined' && alpha < _s.limits.color_alpha.max) {
                 alpha = alpha === 0 ? 0 : convertValToPercent({val: alpha});
             } else {
@@ -446,7 +446,7 @@
                 readable: function(back, limit) {
                     back = colorObject(back);
                     limit = limit || _s.limits.color_adapt_limit.max;
-                    
+
                     return makeColorReadable(back, limit, this);
                 }
             };
@@ -536,7 +536,7 @@
             new_color.g = Math.round(Math.min(Math.max(0, g + (g * lum)), _s.limits.color_rgba.max));
             new_color.b = Math.round(Math.min(Math.max(0, b + (b * lum)), _s.limits.color_rgba.max));
             new_color = colorObject(new_color);
-            
+
             return new_color;
         },
         findReadableColor = function (back_color, front_color, lum_dir, limit, new_alpha) {
@@ -546,7 +546,7 @@
             while (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
                 try_num += 1;
                 front_color = adjustColorLum(front_color, lum_dir * lum_step * try_num);
-                
+
                 if (try_num > limit) break;
             }
 
@@ -560,7 +560,7 @@
         },
         whiteOrBlack = function(s) {
             var color = {};
-            
+
             if (typeof s === 'string') {
                 color = colorObject(s);
             } else if (typeof s === 'object' && s.back_color) {
@@ -578,7 +578,7 @@
         makeColorReadable = function (back_color, limit, front_color) {
             var new_color = $.extend({}, front_color),
                 lum_dir = 1;
-            
+
             if (lumDiff(back_color, front_color) < _s.color.readable_lum_diff) {
                 if (lumDiff(back_color, colorObject(_s.color.black.hex)) >= _s.color.readable_lum_diff) {
                     lum_dir = -1;
@@ -616,7 +616,7 @@
         validateColorStr = function(c) {
             var format = getColorFormat(c) || _s.color.default_format,
                 color_arr = parseColorStr(c, format);
-            
+
             if (format === 'hex') {
                 return color_arr !== null;
             } else {
@@ -660,18 +660,18 @@
         },
         limitRGBAValue = function(val) {
             val = parseFloat(val);
-            
+
             if (isNaN(val)) {
                 val = _s.limits.color_rgba.min;
             } else {
                 val = Math.max(_s.limits.color_rgba.min, Math.min(_s.limits.color_rgba.max, val));
             }
-            
+
             return val;
         },
         getRandomColor = function() {
             var f = _s.limits.color_rgba.min, t = _s.limits.color_rgba.max;
-            
+
             return colorObject([getRandomFromTo(f, t), getRandomFromTo(f, t), getRandomFromTo(f, t), getRandomFromTo(f, t)]);
         },
         fixColor = function(c) {
@@ -683,7 +683,7 @@
                         var fixed_c = $.extend(c, {
                             color: getColorString({color: c.color, format: getColorFormat(c.color)})
                         });
-                        
+
                         if (c.source_color) {
                             fixed_c = $.extend(fixed_c, {
                                 source_color: getColorString({
@@ -692,17 +692,17 @@
                                 )
                             });
                         }
-                        
+
                         return fixed_c;
                     };
-                
+
                 if (isWithColor(c)) {
                     return fixWithColor(c);
                 } else {
                     return getColorString({color: c, format: getColorFormat(c)});
                 }
             }
-            
+
             return _s.color.black.hex;
         },
         isColorValid = function(color) {
@@ -806,25 +806,25 @@
                     extra_s_source_color = false,
                     extra_s_wrap_color_mode = _s.color.default_wrap_color_mode,
                     extra_s_wrap_arrow_mode = _s.color.default_wrap_arrow_mode;
-                
+
                 if (isColorValid(extra_s_format)) {
                     extra_s_format = _s.color.default_format;
                     extra_s_source_color = extra_s[0];
                 }
-                
+
                 if (has_extra_s && extra_s.length > 1) {
                     extra_s_source_color = extra_s[0];
                     extra_s_format = extra_s[1] || _s.color.default_format;
-    
+
                     if (extra_s.length > 2) {
                         extra_s_wrap_color_mode = extra_s[2] || _s.color.default_wrap_color_mode;
-    
+
                         if (extra_s.length > 3) {
                             extra_s_wrap_arrow_mode = extra_s[3] || _s.color.default_wrap_arrow_mode;
                         }
                     }
                 }
-                
+
                 if (typeof s === 'object') {
                     if (Array.isArray(s)) {
                         var $colors = null;
@@ -874,15 +874,15 @@
 
                             if (color) {
                                 var color_ph = '::color::';
-                                
+
                                 s.html = s.html || color_ph;
                                 s.html = s.html.replace(color_ph, color);
-                                
+
                                 var style = {};
 
                                 if (s.wrap_arrow_mode) {
                                     s.$elem.addClass('_' + s.wrap_arrow_mode);
-                                    
+
                                     if (s.wrap_arrow_mode === 'gradient' && s.wrap_color_mode === 'tile') {
                                         s.$elem.css({
                                             'color': 'transparent',
@@ -897,7 +897,7 @@
                                         color = addHashToHex(s.color.hex);
                                         s.color = s.color.alpha > _s.color.readable_alpha ? s.color : _s.color.white.hex;
                                     }
-    
+
                                     if (s.wrap_color_mode === 'tile') {
                                         style = {
                                             'background-color': color,
@@ -942,10 +942,10 @@
             if (s) {
                 if (Array.isArray(s)) {
                     var arr = s.slice();
-                    
+
                     s = {colors: arr};
                 }
-                
+
                 s.sort_type = s.sort_type || _s.color.default_sorting;
 
                 var sort = function(type, colors) {
@@ -955,7 +955,7 @@
                         return colors.sort(function(a, b) {
                             if (isUndefined(a[type])) a = colorObject(a);
                             if (isUndefined(b[type])) b = colorObject(b);
-                            
+
                             return a[type] - b[type];
                         });
                     }
@@ -1003,7 +1003,7 @@
                             'width': canvas.w,
                             'height': canvas.h
                         });
-                    
+
                     $container.append($canvas);
 
                     var ctx = $canvas[0].getContext("2d"),
@@ -1068,7 +1068,7 @@
                     } catch (error) {
                         onImgError([], error, $container, s, img_src);
                     }
-    
+
                     $canvas.remove();
                     $img.off();
                 },
@@ -1089,7 +1089,7 @@
         },
         registerColorizeMode = function(s) {
             s = s || {};
-            
+
             if (typeof s.colorize_mode_name === 'string') {
                 _d.colorize_modes[s.colorize_mode_name] = {};
                 _d.colorize_modes[s.colorize_mode_name].mode = s;
@@ -1156,7 +1156,7 @@
                 if (s.apply_colors && s.rules) {
                     var applyRules = function(rule, $elem, color, color_index, default_prop) {
                         default_prop = default_prop || 'color';
-                        
+
                         if (rule) {
                             if (typeof rule === 'function') {
                                 rule($elem, color, color_index, img_colors);
@@ -1171,12 +1171,12 @@
                             }
                         }
                     };
-                    
+
                     applyRules(s.rules.container, $elem, main_color, 0, 'background-color');
 
                     for (var i = 0; i < marks.length; i += 1) {
                         applyRules(s.rules.element, marks[i], item_colors[i + 1], i + 1);
-                        
+
                         for (var key in s.rules) {
                             if (_s.color.default_rules.indexOf(key) === -1 && s.rules.hasOwnProperty(key) && marks[i].filter(key).length) {
                                 applyRules(s.rules[key], marks[i].filter(key), item_colors[i + 1], i + 1);
@@ -1213,9 +1213,9 @@
                         return getColorString({color: c, format: s.color_format}); })
                     });
                 }
-    
+
                 toggleColorizeMode('apply', s, $elem, item_colors);
-    
+
                 $elem.addClass(clearSel(_s.sel.chmln + _s._sel._colorize_done));
             }
 
@@ -1223,16 +1223,16 @@
         },
         colorize = function(s, $elements) {
             s = $.extend({}, getDefaultSettings(), s);
-    
+
             var colorize = function () {
                     var $this = $(this),
                         item_s = $.extend({}, s, { $img: $this.find(_s.sel.chmln + _s._sel._img).first() });
-            
+
                     if (item_s.$img.length) {
                         parseImageColors($this, item_s.$img[0].src, item_s,
                             function(img_colors, $container, s) {
                                 var item_colors = colorizeElem($container, img_colors, s);
-                        
+
                                 if (typeof s.afterColorized === 'function') {
                                     s.afterColorized(item_colors, s);
                                 }
@@ -1241,7 +1241,7 @@
                                 if (typeof s.afterColorized === 'function') {
                                     s.afterColorized(img_colors, s);
                                 }
-                        
+
                                 logger(['Failed to load image with url "' + img_src + '".', error], 'error');
                             }
                         );
@@ -1251,7 +1251,7 @@
                 },
                 renderElements = function(s, $elements) {
                     var no_elements = false;
-            
+
                     if (!$elements.length) {
                         if (s.content) {
                             var content_prefix = s.content_prefix,
@@ -1262,76 +1262,76 @@
                                 },
                                 renderChildren = function(children) {
                                     var $children = false;
-                            
+
                                     if (children.length) {
                                         var renderChild = function(c) {
                                             return renderElem({elem: c});
                                         };
-                                
+
                                         $children = wrapJQueryArr(children.map(renderChild));
                                     }
-                            
+
                                     return $children;
                                 },
                                 renderElem = function(s) {
                                     s = s || {};
-                            
+
                                     s.elem = $.extend({}, {tag: 'div', class: '', content: '', ignore: false, children: []}, s.elem);
                                     s.type = s.type || 'element';
-                            
+
                                     var ignore_tags = ['img'];
-                            
+
                                     switch (s.type) {
                                         case 'container':
                                             s.elem.class += ' ' + content_prefix;
-                                    
+
                                             break;
                                         case 'element':
                                             if (!s.elem.ignore && ignore_tags.indexOf(s.elem.tag) === -1) {
                                                 chmln_index += 1;
                                                 s.elem.class += ' ' + content_prefix + chmln_index;
                                             }
-                                    
+
                                             if (s.elem.tag === 'img' && s.elem.main_img) {
                                                 s.elem.class += ' ' + content_prefix + _s._sel._img;
                                             }
-                                    
+
                                             break;
                                         default:
                                             logger([_s.actions.COLORIZE + '/renderElements/renderElem - unknown elem type!', s.type], 'warn');
                                     }
-                            
+
                                     var $elem = $('<' + s.elem.tag + '>');
-                            
+
                                     $elem.addClass(s.elem.class || '');
                                     $elem.html(s.elem.content || '');
                                     $elem.append(renderChildren(s.elem.children));
-                            
+
                                     if (s.elem.src && s.elem.tag === 'img') {
                                         $elem.attr('src', s.elem.src).attr('alt', s.elem.alt || 'Chameleon image');
                                     }
-                            
+
                                     if (s.elem.id) {
                                         $elem.attr('id', s.elem.id);
                                     }
-                            
+
                                     return $elem;
                                 },
                                 renderItem = function(item) {
                                     var $item;
-                            
+
                                     if (typeof item === 'string') {
                                         $item = $(item);
-                                
+
                                         var item_content_prefix = $item.attr('data-content_prefix');
-                                
+
                                         if (item_content_prefix && item_content_prefix !== content_prefix) {
                                             $item.addClass(content_prefix);
                                             $item.find('.' + item_content_prefix + _s._sel._img).addClass(content_prefix + _s._sel._img);
-                                    
+
                                             var i = 1,
                                                 $content_item = $item.find('.' + item_content_prefix + i);
-                                    
+
                                             while ($content_item.length) {
                                                 $content_item.addClass(content_prefix + i);
                                                 $content_item = $item.find('.' + item_content_prefix + i);
@@ -1342,15 +1342,15 @@
                                         $item = renderElem({elem: item.container, type: 'container'});
                                         $item.append(renderChildren(item.elements));
                                     }
-                            
+
                                     chmln_index = 0;
-                            
+
                                     return $item;
                                 };
-                    
+
                             if ($root.length && s.content.items && s.content.items.length) {
                                 $elements = wrapJQueryArr(s.content.items.map(renderItem));
-                        
+
                                 $root.append($elements);
                             } else {
                                 no_elements = true;
@@ -1359,28 +1359,28 @@
                             no_elements = true;
                         }
                     }
-            
+
                     if (no_elements) {
                         logger('No $elements found.', 'warn');
                     }
-            
+
                     return $elements;
                 };
-    
+
             $elements = renderElements(s, $elements);
-    
+
             $elements
                 .removeClass(clearSel(_s.sel.chmln + _s._sel._colorize_done))
                 .toggleClass(clearSel(_s.sel.chmln + _s._sel._async_colorize), !!s.async_colorize);
-    
+
             if (s.async_colorize) {
                 var getNext = function($items) {
                         var next = false;
-                
+
                         if ($items.length) {
                             next = $items.splice(0, 1)[0];
                         }
-                
+
                         return $(next);
                     },
                     asyncColorize = function($elem) {
@@ -1388,7 +1388,7 @@
                             if (isUndefined(getStopColorize({$elem: $elem}))) {
                                 colorize.call($elem);
                                 $elem = getNext($elements);
-                        
+
                                 if ($elem.length) {
                                     setTimeout(asyncColorize.bind(null, $elem), 0);
                                 } else {
@@ -1401,51 +1401,51 @@
                             }
                         }
                     };
-        
+
                 if (typeof s.beforeAsyncColorized === 'function') {
                     s.beforeAsyncColorized(s);
                 }
-        
+
                 asyncColorize(getNext($elements));
             } else {
                 $elements.each(colorize);
             }
-    
+
             return $elements;
         },
         getImageColors = function(s, $elements) {
             var handleElement = function() {
                 var $img = $(this);
-            
+
                 s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS, settings_values: {$img: $img} }), s);
-            
+
                 if ($img[0].nodeName.toLowerCase() === 'img') {
                     parseImageColors($img.parent(), $img.attr('src'), s, s.onGetColorsSuccess, s.onGetColorsError);
                 } else {
                     logger('Given element is not "img"!', 'error');
                 }
             };
-        
+
             $elements.each(handleElement);
-            
+
             if (!$elements.length) {
                 if (s.img_src) {
                     s = $.extend({}, getDefaultSettings({settings_type: _s.actions.GETIMAGECOLORS }), s);
-    
+
                     parseImageColors($('body'), s.img_src, s, s.onGetColorsSuccess, s.onGetColorsError);
                 }
             }
         },
         stopColorize = function(s, $elements) {
             var $not_done_elements = $elements.filter(':not(' + _s.sel.chmln + _s._sel._colorize_done + ')');
-    
+
             if ($not_done_elements.length) {
                 getStopColorize({$elem: $not_done_elements, val: 1});
             }
         },
         decolorize = function(s, $elements) {
             s = $.extend({}, getDefaultSettings(), s);
-            
+
             $.each($elements, function() {
                 var $element = $(this),
                     i = 1,
@@ -1463,26 +1463,26 @@
                             }
                         }
                     };
-                
+
                 toggleColorizeMode('remove', s, $element);
                 removeColorize($element, s.rules.container);
-                
+
                 $element
                     .removeClass(s.content_prefix + _s._sel._colorize_done)
                     .removeClass(s.content_prefix + _s._sel._async_colorize)
                     .find('.' + s.content_prefix + _s._sel._canvas)
                     .remove();
-                
+
                 while ($content_item.length) {
                     removeColorize($content_item, s.rules.element);
                     $content_item = $element.find('.' + s.content_prefix + i);
                     i += 1;
                 }
-                
+
                 for (var key in s.rules) {
                     if (_s.color.default_rules.indexOf(key) === -1 && s.rules.hasOwnProperty(key)) {
                         $content_item = $element.find(key);
-                        
+
                         if ($content_item.length) {
                             $content_item.each(function(index, el) {
                                 removeColorize($(el), s.rules[key]);
@@ -1494,10 +1494,10 @@
         },
         skipValidation = function() {
             _f.skip_validation = true;
-            
+
             return $.fn.chameleon;
         };
-    
+
     var actions = {
         stopColorize: stopColorize,
         decolorize: decolorize,
@@ -1518,7 +1518,7 @@
     actions[_s.actions.WRAPCOLOR] = {result: wrapColor};
     actions[_s.actions.COLOROBJECT] = {result: colorObject};
     actions[_s.actions.SORTCOLORS] = {result: sortColors};
-    
+
     _s.allowed_values = {
         'settings_type': [
             _s.actions.COLORIZE,
@@ -1549,11 +1549,11 @@
         var $elements = $(this),
             is_action_passed = typeof action === 'string',
             extra_s = [].slice.call(arguments, is_action_passed ? 2 : 1);
-    
+
         settings = is_action_passed ? settings : action;
         action = is_action_passed ? action : _s.actions.COLORIZE;
         settings = validateSettings(settings, action, extra_s);
-        
+
         setChmlnSel(settings);
 
         if (actions.hasOwnProperty(action)) {
