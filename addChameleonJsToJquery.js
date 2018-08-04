@@ -12,6 +12,11 @@ module.exports = (jQuery, addDebug, modesPaths) => {
     }
 
     if (modesPaths && modesPaths.length) {
-        modesPaths.forEach(modePath => require(modePath));
+        modesPaths.forEach(modePath => {
+            switch (modePath) {
+                case 'blur':
+                    require('./modes/chameleonBlur');
+            }
+        });
     }
 };
