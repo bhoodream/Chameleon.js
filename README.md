@@ -12,28 +12,36 @@ A jQuery plugin for automatic content colorization.
 ## Installation
 Download directly from [GitHub](https://github.com/bhoodream/Chameleon.js) or install via [npm](https://www.npmjs.com/package/jquery.chameleon.js)/[Bower](http://bower.io/search/?q=jquery.chameleon.js).
 
-Include jQuery and the plugin.
+Include jQuery and the plugin:
 ```html
 <script src="path/to/jquery.js"></script>
 <script src="path/to/jquery.chameleon.js"></script>
 ```
 
-If you need colorization modes, include it.
+Or add Chameleon.js to jQuery:
+```javascript
+import $ from 'jquery';
+import addChameleonJsToJquery from 'jquery.chameleon.js/addChameleonJsToJquery';
+
+addChameleonJsToJquery($);
+```
+
+If you need colorization modes, include it:
 ```html
 <script src="path/to/colorization/mode.js"></script>
 ```
 
-If you need debug, include it.
+If you need debug, include it:
 ```html
 <script src="path/to/chameleonDebug.js"></script>
 ```
 
-If you need styles, include it.
+If you need styles, include it:
 ```html
 <link rel="stylesheet" href="path/to/chameleon.css">
 ```
 
-Run the plugin.
+Run the plugin:
 ```javascript
 $(document).ready(function() {
     $('.chmln').chameleon();
