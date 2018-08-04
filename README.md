@@ -32,13 +32,10 @@ If you need debug, include it:
 <script src="path/to/chameleonDebug.js"></script>
 ```
 
-Or enable:
+`addChameleonJsToJquery` add it automatically.
+
+Enable debug:
 ```javascript
-import $ from 'jquery';
-import addChameleonJsToJquery from 'jquery.chameleon.js/addChameleonJsToJquery';
-
-addChameleonJsToJquery($, true);
-
 $(document).ready(function() {
     $('.chmln').chameleon({
         debug: true
@@ -52,13 +49,10 @@ If you need colorization modes, include it:
 <script src="path/to/colorization/mode.js"></script>
 ```
 
-Or enable:
+`addChameleonJsToJquery` add it automatically.
+
+Use modes:
 ```javascript
-import $ from 'jquery';
-import addChameleonJsToJquery from 'jquery.chameleon.js/addChameleonJsToJquery';
-
-addChameleonJsToJquery($, null, ['blur']);
-
 $(document).ready(function() {
     $('.chmln').chameleon({
         colorize_mode: {

@@ -1,4 +1,4 @@
-module.exports = (jQuery, addDebug, modesPaths) => {
+module.exports = jQuery => {
     if (typeof window === 'undefined') {
         const window = typeof global !== 'undefined' ? global : {};
     }
@@ -6,17 +6,6 @@ module.exports = (jQuery, addDebug, modesPaths) => {
     window.jQuery = jQuery;
 
     require('./jquery.chameleon');
-
-    if (addDebug) {
-        require('./chameleonDebug');
-    }
-
-    if (modesPaths && modesPaths.length) {
-        modesPaths.forEach(modePath => {
-            switch (modePath) {
-                case 'blur':
-                    require('./modes/chameleonBlur');
-            }
-        });
-    }
+    require('./chameleonDebug');
+    require('./modes/chameleonBlur');
 };
