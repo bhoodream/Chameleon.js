@@ -32,7 +32,7 @@ If you need debug, include it:
 <script src="path/to/chameleonDebug.js"></script>
 ```
 
-`addChameleonJsToJquery` add it automatically.
+With `addChameleonJsToJquery($)` debug included automatically.
 
 Enable debug:
 ```javascript
@@ -49,7 +49,7 @@ If you need colorization modes, include it:
 <script src="path/to/colorization/mode.js"></script>
 ```
 
-`addChameleonJsToJquery` add it automatically.
+With `addChameleonJsToJquery($)` modes included automatically.
 
 Use modes:
 ```javascript
@@ -69,7 +69,7 @@ If you need styles for color elements, include it:
 <link rel="stylesheet" href="path/to/chmln__colors.css">
 ```
 
-Or add:
+Or import:
 ```javascript
 import 'jquery.chameleon.js/css/chmln__colors.css';
 ```

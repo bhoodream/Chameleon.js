@@ -1223,6 +1223,15 @@
         colorize = function(s, $elements) {
             s = $.extend({}, getDefaultSettings(), s);
 
+            var elementsCount = $elements.length;
+            var elementsColorizedCount = 0;
+            var checkAsyncColorizeFinish = function () {
+                elementsColorizedCount += 1;
+
+                if (typeof s.afterAsyncColorized === 'function' && elementsColorizedCount >= elementsCount) {
+                    s.afterAsyncColorized(s);
+                }
+            }
             var colorize = function () {
                     var $this = $(this),
                         item_s = $.extend({}, s, { $img: $this.find(_s.sel.chmln + _s._sel._img).first() });
@@ -1230,6 +1239,8 @@
                     if (item_s.$img.length) {
                         parseImageColors($this, item_s.$img[0].src, item_s,
                             function(img_colors, $container, s) {
+                                checkAsyncColorizeFinish();
+
                                 var item_colors = colorizeElem($container, img_colors, s);
 
                                 if (typeof s.afterColorized === 'function') {
@@ -1237,6 +1248,8 @@
                                 }
                             },
                             function(img_colors, error, $container, s, img_src) {
+                                checkAsyncColorizeFinish();
+
                                 if (typeof s.afterColorized === 'function') {
                                     s.afterColorized(img_colors, s);
                                 }
@@ -1390,10 +1403,6 @@
 
                                 if ($elem.length) {
                                     setTimeout(asyncColorize.bind(null, $elem), 0);
-                                } else {
-                                    if (typeof s.afterAsyncColorized === 'function') {
-                                        s.afterAsyncColorized(s);
-                                    }
                                 }
                             } else {
                                 getStopColorize({$elem: $elem, val: '', remove: true});
